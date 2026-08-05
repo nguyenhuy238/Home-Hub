@@ -30,8 +30,8 @@ export default function AdminPage() {
   async function load() {
     setLoading(true);
     try {
-      const [storeContext, categoryData, productResponse, leadResponse] = await Promise.all([api<Context>('/admin/context'), api<Category[]>('/admin/categories'), api<{ data: Product[]; meta: unknown }>('/admin/products'), api<{ data: Lead[]; meta: unknown }>('/admin/contact-requests')]);
-      setContext(storeContext); setCategories(categoryData); setProducts(productResponse.data); setLeads(leadResponse.data); setNotice('');
+      const [storeContext, categoryData, productData, leadData] = await Promise.all([api<Context>('/admin/context'), api<Category[]>('/admin/categories'), api<Product[]>('/admin/products'), api<Lead[]>('/admin/contact-requests')]);
+      setContext(storeContext); setCategories(Array.isArray(categoryData) ? categoryData : []); setProducts(Array.isArray(productData) ? productData : []); setLeads(Array.isArray(leadData) ? leadData : []); setNotice('');
     } catch (error) {
       setNotice(error instanceof Error && error.message === 'unauthorized' ? 'Phiên đăng nhập đã hết hạn.' : 'Chưa tải được dữ liệu. Kiểm tra API và thử lại.');
     } finally { setLoading(false); }
