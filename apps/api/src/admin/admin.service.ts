@@ -31,7 +31,7 @@ export class AdminService {
 
   async updateStoreSettings(storeId: string, input: UpdateStoreSettingsDto, actorUserId: string) {
     const current = await this.getStoreSettings(storeId);
-    const settingsData = { ...input, openingHours: input.openingHours as Prisma.InputJsonValue | undefined, themeSettings: input.themeSettings as Prisma.InputJsonValue | undefined, seoDefaults: input.seoDefaults as Prisma.InputJsonValue | undefined };
+    const settingsData = { ...input, description: input.description === undefined ? undefined : sanitizeRichText(input.description), openingHours: input.openingHours as Prisma.InputJsonValue | undefined, themeSettings: input.themeSettings as Prisma.InputJsonValue | undefined, seoDefaults: input.seoDefaults as Prisma.InputJsonValue | undefined };
     const settings = await this.prisma.storeSettings.upsert({ where: { storeId }, create: { storeId, ...settingsData }, update: settingsData });
     await this.audit(storeId, actorUserId, 'UPDATE_STORE_SETTINGS', 'STORE_SETTINGS', storeId, current.settings ? { description: current.settings.description } : undefined, { description: settings.description });
     return settings;

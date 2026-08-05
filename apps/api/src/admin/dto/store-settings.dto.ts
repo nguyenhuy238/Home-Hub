@@ -2,6 +2,7 @@ import { IsObject, IsOptional, IsString, IsUrl, MaxLength } from 'class-validato
 
 export class UpdateStoreSettingsDto {
   @IsOptional() @IsString() @MaxLength(5000) description?: string;
+  @IsOptional() @IsString() @MaxLength(240) address?: string;
   @IsOptional() @IsString() @MaxLength(40) phone?: string;
   @IsOptional() @IsString() @MaxLength(160) email?: string;
   @IsOptional() @IsString() logoKey?: string;

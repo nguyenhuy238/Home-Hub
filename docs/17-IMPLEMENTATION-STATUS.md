@@ -9,7 +9,8 @@
 - Category, product, product-category, rich-text sanitize, pricing validation và soft delete.
 - Product image upload qua Vercel Blob; file chỉ nhận JPG/PNG/WebP, tối đa 4MB.
 - Public storefront: store, category, product, service, contact request, slug alias và suspended notice.
-- Admin UI tại `/admin/login` và `/admin`; owner có thể tạo danh mục, tạo sản phẩm nháp, upload ảnh và xử lý lead.
+- Admin UI tại `/admin/login` và `/admin`; owner có thể quản lý danh mục, tạo/chỉnh sửa/xuất bản sản phẩm với nhiều danh mục và rich-text editor, upload ảnh, quản lý dịch vụ, cập nhật settings/slug và xử lý lead.
+- Storefront hiển thị địa chỉ, email, Zalo, Facebook và link bản đồ khi cửa hàng cấu hình.
 - Resend notification baseline, lead anonymization sau 12 tháng và cron endpoint.
 - OpenAPI tại `/docs`, error response chuẩn có `requestId`, CORS và rate limit best-effort cho contact.
 
@@ -60,7 +61,7 @@ Cron hoặc scheduler tương đương.
 
 ## Phần mở rộng sau MVP
 
-- UI platform admin và UI chỉnh sửa đầy đủ store settings/service/brand/attribute.
+- UI platform admin và UI chỉnh sửa đầy đủ brand/attribute.
 - Upload/gallery reorder và xóa blob vật lý khi xóa ProductImage.
 - Rate limiting dùng Redis hoặc provider edge thay cho in-memory best effort.
 - Custom domain mapping, analytics và order/checkout theo các quyết định mới.

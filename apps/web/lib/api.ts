@@ -6,7 +6,12 @@ export type Store = {
   status: 'ACTIVE' | 'SUSPENDED';
   suspensionNotice: string | null;
   description: string | null;
+  address: string | null;
   phone: string | null;
+  email: string | null;
+  zaloUrl: string | null;
+  facebookUrl: string | null;
+  mapUrl: string | null;
   logoUrl: string | null;
   bannerUrl: string | null;
 };

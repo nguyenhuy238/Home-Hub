@@ -13,8 +13,12 @@ type ResolvedStore = {
   suspensionNotice: string | null;
   settings: {
     description: string | null;
+    address: string | null;
     phone: string | null;
     email: string | null;
+    zaloUrl: string | null;
+    facebookUrl: string | null;
+    mapUrl: string | null;
     logoKey: string | null;
     bannerKey: string | null;
   } | null;
@@ -114,9 +118,9 @@ export class PublicService {
   }
 
   private async resolveStore(storeSlug: string): Promise<ResolvedStore> {
-    const direct = await this.prisma.store.findFirst({ where: { slug: storeSlug, deletedAt: null }, include: { settings: { select: { description: true, phone: true, email: true, logoKey: true, bannerKey: true } } } });
+    const direct = await this.prisma.store.findFirst({ where: { slug: storeSlug, deletedAt: null }, include: { settings: { select: { description: true, address: true, phone: true, email: true, zaloUrl: true, facebookUrl: true, mapUrl: true, logoKey: true, bannerKey: true } } } });
     if (direct) return { ...direct, aliasMatched: false };
-    const alias = await this.prisma.storeSlugAlias.findUnique({ where: { slug: storeSlug }, include: { store: { include: { settings: { select: { description: true, phone: true, email: true, logoKey: true, bannerKey: true } } } } } });
+    const alias = await this.prisma.storeSlugAlias.findUnique({ where: { slug: storeSlug }, include: { store: { include: { settings: { select: { description: true, address: true, phone: true, email: true, zaloUrl: true, facebookUrl: true, mapUrl: true, logoKey: true, bannerKey: true } } } } } });
     if (alias?.store.deletedAt === null) return { ...alias.store, aliasMatched: true };
     throw new NotFoundException('Không tìm thấy cửa hàng');
   }
@@ -129,7 +133,7 @@ export class PublicService {
   }
 
   private toPublicStore(store: ResolvedStore) {
-    return { name: store.name, slug: store.slug, status: store.status === StoreStatus.SUSPENDED ? 'SUSPENDED' as const : 'ACTIVE' as const, suspensionNotice: store.status === StoreStatus.SUSPENDED ? store.suspensionNotice : null, description: store.settings?.description ?? null, phone: store.settings?.phone ?? null, logoUrl: assetUrl(store.settings?.logoKey ?? null), bannerUrl: assetUrl(store.settings?.bannerKey ?? null) };
+    return { name: store.name, slug: store.slug, status: store.status === StoreStatus.SUSPENDED ? 'SUSPENDED' as const : 'ACTIVE' as const, suspensionNotice: store.status === StoreStatus.SUSPENDED ? store.suspensionNotice : null, description: store.settings?.description ?? null, address: store.settings?.address ?? null, phone: store.settings?.phone ?? null, email: store.settings?.email ?? null, zaloUrl: store.settings?.zaloUrl ?? null, facebookUrl: store.settings?.facebookUrl ?? null, mapUrl: store.settings?.mapUrl ?? null, logoUrl: assetUrl(store.settings?.logoKey ?? null), bannerUrl: assetUrl(store.settings?.bannerKey ?? null) };
   }
 
   private toProductSummary(product: { id: string; name: string; slug: string; priceType: PriceType; price: Prisma.Decimal | null; images: Array<{ publicUrl: string | null; storageKey: string }> }) {
