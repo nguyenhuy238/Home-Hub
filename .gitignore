@@ -1,0 +1,43 @@
+# Dependencies and package-manager state
+node_modules/
+.pnpm-store/
+.turbo/
+
+# Builds and test output
+.next/
+dist/
+build/
+coverage/
+playwright-report/
+test-results/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+*.local
+
+# Runtime data and local services
+postgres-data/
+minio-data/
+*.log
+.tmp/
+.cache/
+
+# Editor/OS files
+.idea/
+.vscode/
+!.vscode/extensions.json
+*.swp
+.DS_Store
+Thumbs.db
+
+# Generated media and archives
+uploads/
+storage/
+*.dump
+*.sql.gz
+
+# Local reference/tooling bundles used to prepare the project docs
+hallmark/
+open-design/

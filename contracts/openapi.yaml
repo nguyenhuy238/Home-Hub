@@ -1,0 +1,248 @@
+openapi: 3.0.3
+info:
+  title: HomeHub API
+  version: 0.1.0
+  description: Initial contract skeleton. Expand endpoint-by-endpoint during implementation.
+servers:
+  - url: /api/v1
+paths:
+  /health:
+    get:
+      tags: [System]
+      summary: Health check
+      responses:
+        '200':
+          description: Service is healthy
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  status:
+                    type: string
+                    example: ok
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Login
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: Authenticated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UserEnvelope'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+  /public/stores/{storeSlug}:
+    get:
+      tags: [Public Storefront]
+      summary: Get public store profile
+      parameters:
+        - $ref: '#/components/parameters/StoreSlug'
+      responses:
+        '200':
+          description: Public store
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PublicStoreEnvelope'
+        '404':
+          $ref: '#/components/responses/NotFound'
+  /public/stores/{storeSlug}/products:
+    get:
+      tags: [Public Storefront]
+      summary: List published products
+      parameters:
+        - $ref: '#/components/parameters/StoreSlug'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 100 }
+        - name: categorySlug
+          in: query
+          schema: { type: string }
+      responses:
+        '200':
+          description: Product page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ProductPageEnvelope'
+  /public/stores/{storeSlug}/contact-requests:
+    post:
+      tags: [Public Storefront]
+      summary: Submit a consultation request
+      parameters:
+        - $ref: '#/components/parameters/StoreSlug'
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateContactRequest'
+      responses:
+        '201':
+          description: Request accepted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      id: { type: string }
+                      status: { type: string, enum: [NEW] }
+        '429':
+          description: Rate limited
+  /public/stores/{storeSlug}/services:
+    get:
+      tags: [Public Storefront]
+      summary: List published services
+      parameters:
+        - $ref: '#/components/parameters/StoreSlug'
+        - $ref: '#/components/parameters/Page'
+        - $ref: '#/components/parameters/PageSize'
+        - name: search
+          in: query
+          schema: { type: string, maxLength: 100 }
+      responses:
+        '200':
+          description: Service page
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ServicePageEnvelope'
+components:
+  parameters:
+    StoreSlug:
+      name: storeSlug
+      in: path
+      required: true
+      schema:
+        type: string
+        pattern: '^[a-z0-9]+(?:-[a-z0-9]+)*$'
+    Page:
+      name: page
+      in: query
+      schema: { type: integer, minimum: 1, default: 1 }
+    PageSize:
+      name: pageSize
+      in: query
+      schema: { type: integer, minimum: 1, maximum: 100, default: 24 }
+  schemas:
+    LoginRequest:
+      type: object
+      required: [email, password]
+      properties:
+        email: { type: string, format: email }
+        password: { type: string, minLength: 8 }
+    User:
+      type: object
+      required: [id, email, displayName]
+      properties:
+        id: { type: string }
+        email: { type: string, format: email }
+        displayName: { type: string }
+    UserEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/User' }
+    PublicStore:
+      type: object
+      required: [name, slug, status]
+      properties:
+        name: { type: string }
+        slug: { type: string }
+        status: { type: string, enum: [ACTIVE] }
+        description: { type: string, nullable: true }
+        phone: { type: string, nullable: true }
+        logoUrl: { type: string, format: uri, nullable: true }
+        bannerUrl: { type: string, format: uri, nullable: true }
+    PublicStoreEnvelope:
+      type: object
+      properties:
+        data: { $ref: '#/components/schemas/PublicStore' }
+    ProductSummary:
+      type: object
+      required: [id, name, slug, priceType, publicationStatus]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        priceType: { type: string, enum: [FIXED, CONTACT, FROM, RANGE] }
+        price: { type: number, format: double, nullable: true }
+        thumbnailUrl: { type: string, format: uri, nullable: true }
+        publicationStatus: { type: string, enum: [PUBLISHED] }
+    PaginationMeta:
+      type: object
+      required: [page, pageSize, total, totalPages]
+      properties:
+        page: { type: integer }
+        pageSize: { type: integer }
+        total: { type: integer }
+        totalPages: { type: integer }
+    ProductPageEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ProductSummary' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+    ServiceSummary:
+      type: object
+      required: [id, name, slug, priceType, publicationStatus]
+      properties:
+        id: { type: string }
+        name: { type: string }
+        slug: { type: string }
+        priceType: { type: string, enum: [FIXED, CONTACT, FROM, RANGE] }
+        price: { type: number, format: double, nullable: true }
+        coverImageUrl: { type: string, format: uri, nullable: true }
+        publicationStatus: { type: string, enum: [PUBLISHED] }
+    ServicePageEnvelope:
+      type: object
+      properties:
+        data:
+          type: array
+          items: { $ref: '#/components/schemas/ServiceSummary' }
+        meta: { $ref: '#/components/schemas/PaginationMeta' }
+    CreateContactRequest:
+      type: object
+      required: [customerName, customerPhone, message]
+      properties:
+        customerName: { type: string, minLength: 2, maxLength: 100 }
+        customerPhone: { type: string, minLength: 8, maxLength: 20 }
+        customerEmail: { type: string, format: email, nullable: true }
+        productId: { type: string, nullable: true }
+        message: { type: string, minLength: 5, maxLength: 2000 }
+    ErrorBody:
+      type: object
+      properties:
+        error:
+          type: object
+          required: [code, message]
+          properties:
+            code: { type: string }
+            message: { type: string }
+            details: { nullable: true }
+            requestId: { type: string, nullable: true }
+  responses:
+    Unauthorized:
+      description: Authentication required
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorBody' }
+    NotFound:
+      description: Resource not found
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/ErrorBody' }
