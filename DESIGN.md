@@ -31,9 +31,9 @@ source of truth for these values.
   --color-danger:     oklch(0.500 0.135 28);
   --color-focus:      oklch(0.390 0.100 218);
 
-  --font-display: "DM Serif Display", Georgia, serif;
-  --font-body: "DM Sans", system-ui, sans-serif;
-  --font-mono: "JetBrains Mono", ui-monospace, monospace;
+  --font-display: Georgia, "Times New Roman", "Noto Serif", "DejaVu Serif", serif;
+  --font-body: "Segoe UI", "Noto Sans", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Segoe UI Mono", "Noto Sans Mono", monospace;
 
   --space-3xs: 0.25rem; --space-2xs: 0.5rem; --space-xs: 0.75rem;
   --space-sm: 1rem; --space-md: 1.5rem; --space-lg: 2rem;

@@ -7,8 +7,14 @@
   --color-accent: oklch(0.5 0.115 38);
   --color-accent-hover: oklch(0.415 0.12 36);
   --color-accent-ink: oklch(0.985 0.012 85);
-  --font-display: "DM Serif Display", Georgia, serif;
-  --font-body: "DM Sans", system-ui, sans-serif;
+  /*
+   * Keep typography self-contained. The project intentionally does not
+   * import remote fonts, so every fallback below is available on common
+   * Windows, macOS and Linux installations and covers Vietnamese glyphs.
+   */
+  --font-display: Georgia, "Times New Roman", "Noto Serif", "DejaVu Serif", serif;
+  --font-body: "Segoe UI", "Noto Sans", Arial, sans-serif;
+  --font-mono: "Cascadia Mono", "Segoe UI Mono", "Noto Sans Mono", monospace;
   --space-sm: 1rem;
   --space-md: 1.5rem;
   --space-lg: 2rem;
@@ -17,8 +23,8 @@
 }
 
 * { box-sizing: border-box; }
-html, body { margin: 0; min-width: 320px; overflow-x: clip; }
-body { background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); }
+html { margin: 0; min-width: 320px; overflow-x: clip; text-size-adjust: 100%; }
+body { margin: 0; background: var(--color-paper); color: var(--color-ink); font-family: var(--font-body); font-synthesis: none; text-rendering: optimizeLegibility; -webkit-font-smoothing: antialiased; }
 a { color: inherit; }
 .landing-shell { min-height: 100svh; display: grid; grid-template-rows: auto 1fr auto; max-width: 80rem; margin: 0 auto; padding: 1.25rem clamp(1rem, 4vw, 4rem); }
 .site-header, .site-footer { display: flex; align-items: center; justify-content: space-between; gap: var(--space-md); border-bottom: 1px solid var(--color-rule); padding-bottom: var(--space-sm); font-size: 0.75rem; letter-spacing: 0.08em; text-transform: uppercase; }
