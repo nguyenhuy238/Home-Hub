@@ -52,12 +52,12 @@
 3. Xem chi tiết và đổi trạng thái.
 4. Hệ thống ghi actor và thời gian thay đổi.
 
-## UC-07 — Chuyển cửa hàng quản trị
+## UC-07 — Platform admin tạo membership OWNER
 
-1. Người dùng thuộc nhiều store mở bộ chọn cửa hàng.
-2. Chọn store mong muốn.
-3. Backend xác minh membership đang hoạt động.
-4. Mọi request sau sử dụng tenant context đã xác thực.
+1. Platform admin tạo store và user owner hoặc chọn user chưa thuộc store.
+2. Hệ thống tạo membership `OWNER` trong cùng transaction.
+3. Hệ thống từ chối nếu user đã thuộc một store trong MVP.
+4. Mọi request admin sau đó resolve tenant context từ membership duy nhất.
 
 ## UC-08 — Chặn truy cập chéo tenant
 
@@ -65,6 +65,19 @@
 2. Repository truy vấn bằng `(id, store_id=A)`.
 3. Không tìm thấy dữ liệu; API trả `404` hoặc lỗi quyền theo chính sách, không tiết lộ sự tồn tại của tài nguyên B.
 4. Security event được log khi phù hợp.
+
+## UC-09 — Store suspended hiển thị thông báo
+
+1. Khách mở URL store đang `SUSPENDED`.
+2. Hệ thống trả trang thông báo của cửa hàng/nền tảng, không trả product/service catalog.
+3. Owner không thể tạo hoặc publish nội dung trong store suspended.
+
+## UC-10 — Owner đổi store slug
+
+1. Owner nhập slug mới trong Store Settings.
+2. Backend kiểm tra slug hiện tại và alias không trùng toàn hệ thống.
+3. Transaction cập nhật slug mới và tạo `store_slug_aliases` cho slug cũ.
+4. URL cũ redirect 301 tới URL mới; audit log ghi thay đổi.
 
 ## Sơ đồ use-case mức cao
 
@@ -74,6 +87,6 @@ flowchart LR
     Visitor --> Contact[Gửi yêu cầu tư vấn]
     StoreUser[Thành viên cửa hàng] --> Catalog[Quản lý catalog]
     StoreUser --> Leads[Quản lý yêu cầu]
-    Owner[Owner] --> Members[Quản lý thành viên]
+    Owner[Owner] --> Settings[Cấu hình cửa hàng]
     PlatformAdmin[Platform admin] --> Stores[Quản lý cửa hàng]
 ```

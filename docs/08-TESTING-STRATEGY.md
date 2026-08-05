@@ -47,7 +47,7 @@ Dùng Playwright cho các luồng quan trọng:
 Tối thiểu:
 
 - Store A và Store B.
-- Owner A, Editor A, Viewer A, Owner B, Platform admin.
+- Owner A, Owner B, Platform admin; user không được có membership ACTIVE thứ hai trong MVP.
 - Category/product ở mỗi store.
 - Store suspended để kiểm thử trạng thái.
 
@@ -68,7 +68,12 @@ Mỗi endpoint quản trị phải được test với:
 - Chỉ published product được trả.
 - Hidden/draft/deleted không xuất hiện.
 - Store suspended xử lý đúng.
+- Store suspended trả thông báo và không trả catalog.
 - Product slug cùng tên ở hai store không xung đột.
+- Product có nhiều category cùng tenant; liên kết category khác tenant bị từ chối.
+- Rich-text có payload XSS bị sanitize trước khi public render.
+- Slug cũ redirect 301 sau khi Owner đổi slug.
+- Lead notification retry không tạo duplicate và lead được anonymize sau 12 tháng.
 
 ## 6. CI gates
 

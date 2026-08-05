@@ -9,6 +9,7 @@ Kế hoạch này biến bộ đặc tả thành các lát cắt có thể code,
 - API contract, OpenAPI và response error được cập nhật cùng code.
 - Mọi resource tenant-owned đều đi qua trusted tenant context; test A/B là điều kiện bắt buộc.
 - Dùng `DESIGN.md` làm nguồn sự thật của giao diện; không tạo theme riêng cho từng cửa hàng ở MVP.
+- MVP có một OWNER/store, nhiều category/product, rich text đã sanitize, Vercel Blob, email notification và anonymization lead.
 - Commit nhỏ theo task; không gom toàn bộ milestone vào một commit khó review.
 
 ## 2. Trình tự thực hiện đề xuất
@@ -19,23 +20,23 @@ Tạo `apps/web`, `apps/api`, packages config, strict TypeScript, lint/format, D
 
 ### Slice 1 — Identity và tenant context
 
-Tạo `users`, `stores`, `store_members`, auth login/refresh/logout/me, password hash, session cookie, membership resolver, store selector và role guard. Seed Store A/B cùng tài khoản test. Bắt buộc có test user A không đọc context B.
+Tạo `users`, `stores`, `store_members`, auth login/refresh/logout/me, password hash, session cookie, membership resolver và OWNER guard. Seed Store A/B với hai owner riêng. Bắt buộc có test owner A không đọc context B và không thể tạo membership thứ hai.
 
 ### Slice 2 — Store settings và media foundation
 
-Tạo store settings, signed upload URL, media validation, object key convention, image metadata và audit log. Làm trang cấu hình logo/banner/contact trước khi làm product gallery.
+Tạo store settings, Vercel Blob upload URL, media validation, object key convention, image metadata, slug aliases và audit log. Làm trang cấu hình logo/banner/contact trước khi làm product gallery.
 
 ### Slice 3 — Catalog admin
 
-Làm theo thứ tự category → brand → product → attributes → service. Mỗi module hoàn chỉnh gồm list/create/edit/delete soft delete, validation, permission, OpenAPI, repository scoped và test. Product form tách section theo `DESIGN.md`.
+Làm theo thứ tự category → brand → product-category join → product → attributes → service. Mỗi module hoàn chỉnh gồm list/create/edit/delete soft delete, validation, OWNER permission, OpenAPI, repository scoped và test. Product form tách section theo `DESIGN.md`, rich text phải được sanitize.
 
 ### Slice 4 — Preview/publish và public storefront
 
-Tạo public store home, category/listing, product detail, service page, search cơ bản, SSR metadata, OG/canonical/sitemap. Chỉ published content của active store được trả. Thêm browser test mở đúng URL từ link chia sẻ.
+Tạo public store home, category/listing nhiều category, product detail, service page, search cơ bản, SSR metadata, OG/canonical/sitemap. Store suspended trả thông báo; chỉ published content của active store được trả. Thêm browser test slug alias redirect 301.
 
 ### Slice 5 — Contact requests và dashboard
 
-Thêm form public có rate limit/honeypot, lead list/detail/status, store dashboard summary và CTA gọi/Zalo/Messenger. Test lead của A không xuất hiện trong B; test empty/error/success UI.
+Thêm form public có rate limit/honeypot, lead list/detail/status, Resend notification, job anonymize 12 tháng, store dashboard summary và CTA gọi/Zalo/Messenger. Test lead của A không xuất hiện trong B; test empty/error/success UI.
 
 ### Slice 6 — Hardening và release
 
@@ -50,12 +51,12 @@ Chạy E2E đầy đủ, kiểm tra accessibility/mobile, p95 read cơ bản, ba
 | HH-003 | Authentication | login/refresh/logout/me; refresh token lưu hash |
 | HH-004 | Tenant context | mọi admin query có store scope; test A/B đỏ nếu bỏ scope |
 | HH-005 | Platform store management | tạo store + owner trong transaction |
-| HH-006 | Store settings/media | upload signed URL; MIME/size/ownership được kiểm tra |
+| HH-006 | Store settings/media | Vercel Blob upload; MIME/size/ownership được kiểm tra; slug alias |
 | HH-007 | Category CRUD | slug scoped; parent cùng tenant; role test |
-| HH-008 | Product CRUD | giá/slug/category/brand/image validation; draft/publish |
+| HH-008 | Product CRUD | giá/slug/multi-category/brand/image/rich-text validation; draft/publish |
 | HH-009 | Service CRUD | public/admin contract nhất quán với product |
 | HH-010 | Storefront | SSR store/list/detail; draft/hidden không public |
-| HH-011 | Contact requests | rate limit; lead đúng tenant; status workflow |
+| HH-011 | Contact requests | rate limit; Resend notification; anonymize sau 12 tháng; lead đúng tenant |
 | HH-012 | Release hardening | E2E, a11y, backup/restore, deployment guide |
 
 ## 4. Vòng lặp cho mỗi task
@@ -85,4 +86,4 @@ Chạy E2E đầy đủ, kiểm tra accessibility/mobile, p95 read cơ bản, ba
 
 ## 7. Tiêu chí sẵn sàng để mở rộng sau MVP
 
-Chỉ cân nhắc import hàng loạt, custom domain, analytics, notification, search nâng cao hoặc thương mại điện tử sau khi: tenant isolation test ổn định, backup/restore đã thử, media quota có số liệu, funnel contact có dữ liệu thực và có ADR cho phạm vi mới.
+Chỉ triển khai custom domain, import hàng loạt, analytics, search nâng cao hoặc thương mại điện tử sau khi: tenant isolation test ổn định, backup/restore đã thử, media quota có số liệu, funnel contact có dữ liệu thực và có ADR/acceptance criteria riêng.

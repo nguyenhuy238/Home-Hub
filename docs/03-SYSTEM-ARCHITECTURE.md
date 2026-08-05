@@ -6,7 +6,7 @@
 - Frontend Next.js App Router.
 - Backend NestJS modular monolith.
 - PostgreSQL + Prisma.
-- Object storage cho media.
+- Vercel Blob cho media ở môi trường đầu tiên; PostgreSQL managed bên ngoài Vercel.
 - REST API có OpenAPI.
 - Multi-tenant shared database/shared schema.
 
@@ -15,11 +15,11 @@
 ```mermaid
 flowchart TB
     Visitor[Khách hàng] --> Web[Next.js Web]
-    StoreUser[Chủ cửa hàng / Nhân viên] --> Web
+    StoreUser[Chủ cửa hàng OWNER] --> Web
     PlatformAdmin[Platform Admin] --> Web
     Web --> API[NestJS REST API]
     API --> DB[(PostgreSQL)]
-    API --> Storage[(S3 / Cloudinary)]
+    API --> Storage[(Vercel Blob)]
     API -. optional .-> Redis[(Redis)]
 ```
 
@@ -30,7 +30,7 @@ flowchart LR
     Browser -->|HTTPS| Next[apps/web - Next.js]
     Next -->|REST /api/v1| Api[apps/api - NestJS]
     Api -->|Prisma| Pg[(PostgreSQL)]
-    Next -->|Signed upload| Obj[(Object Storage/CDN)]
+    Next -->|Signed upload| Obj[(Vercel Blob/CDN)]
     Api -->|Create signed URL / metadata| Obj
 ```
 
@@ -45,9 +45,12 @@ CategoriesModule
 BrandsModule
 ProductsModule
 ProductAttributesModule
+ProductCategoriesModule
 MediaModule
 ServicesModule
 ContactRequestsModule
+LeadNotificationModule
+LeadAnonymizationModule
 StoreSettingsModule
 AuditLogsModule
 PlatformAdminModule
@@ -75,7 +78,7 @@ sequenceDiagram
 
     B->>W: Submit product form
     W->>A: POST /api/v1/admin/products
-    A->>G: Authenticate + resolve store + authorize role
+    A->>G: Authenticate + resolve the user's single store + authorize OWNER
     G->>U: Execute with trusted tenant context
     U->>R: create(storeId, input)
     R->>D: INSERT ... store_id
@@ -97,7 +100,7 @@ sequenceDiagram
 
     C->>N: GET /cua-hang/{storeSlug}/san-pham/{productSlug}
     N->>A: GET public product by storeSlug + productSlug
-    A->>D: Query active store and published product
+    A->>D: Query active store/alias and published product
     D-->>A: Data
     A-->>N: Public DTO
     N-->>C: SSR HTML + Open Graph metadata

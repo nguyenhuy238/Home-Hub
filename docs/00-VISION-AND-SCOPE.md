@@ -46,10 +46,7 @@ Không cần đăng nhập. Xem cửa hàng, tìm sản phẩm, xem chi tiết v
 
 ### Thành viên cửa hàng
 
-- `OWNER`: toàn quyền trong cửa hàng.
-- `MANAGER`: quản lý nội dung và thành viên theo chính sách.
-- `EDITOR`: quản lý catalog.
-- `VIEWER`: chỉ xem dữ liệu quản trị.
+- `OWNER`: toàn quyền trong cửa hàng. MVP chỉ có một user quản trị cho mỗi cửa hàng.
 
 ### Platform admin
 
@@ -66,7 +63,10 @@ Quản lý cửa hàng, trạng thái hoạt động, chủ cửa hàng và th�
 ## 7. Giả định
 
 - Mỗi cửa hàng có ít nhất một `OWNER`.
-- Một người dùng có thể thuộc nhiều cửa hàng.
+- Một người dùng chỉ thuộc một cửa hàng trong MVP; mô hình membership được giữ để mở rộng sau.
 - Giá sản phẩm có thể là giá cố định, “từ”, khoảng giá hoặc “liên hệ”.
 - Sản phẩm có thể không quản lý số lượng tồn kho ở giai đoạn 1.
+- Một sản phẩm có thể thuộc nhiều danh mục trong cùng cửa hàng.
+- Store suspended hiển thị trang thông báo, không hiển thị catalog.
+- Lead được anonymize sau 12 tháng và có email notification khi tạo mới.
 - Dữ liệu người liên hệ thuộc về đúng cửa hàng nhận yêu cầu.

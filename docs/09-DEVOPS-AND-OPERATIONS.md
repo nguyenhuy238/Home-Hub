@@ -15,17 +15,20 @@ Ví dụ nhóm biến:
 
 ```text
 DATABASE_URL
-APP_BASE_URL
 WEB_BASE_URL
+API_BASE_URL
 ACCESS_TOKEN_SECRET
 REFRESH_TOKEN_SECRET
-OBJECT_STORAGE_ENDPOINT
-OBJECT_STORAGE_BUCKET
-OBJECT_STORAGE_ACCESS_KEY
-OBJECT_STORAGE_SECRET_KEY
+BLOB_READ_WRITE_TOKEN
+RESEND_API_KEY
+EMAIL_FROM
 CORS_ALLOWED_ORIGINS
 LOG_LEVEL
 ```
+
+Môi trường đầu tiên deploy web/API trên Vercel, media trên Vercel Blob và
+database trên một PostgreSQL managed độc lập. Không dùng filesystem local của
+Vercel để lưu upload lâu dài.
 
 Validate environment khi ứng dụng khởi động.
 
@@ -36,6 +39,9 @@ Docker Compose nên cung cấp:
 - PostgreSQL.
 - MinIO tùy chọn cho object storage local.
 - Redis chỉ khi module thực sự sử dụng.
+
+Local có thể dùng adapter filesystem/MinIO giả lập; staging/production phải
+dùng Vercel Blob để kiểm tra signed upload gần production.
 
 Web/API có thể chạy local ngoài container để hot reload nhanh.
 
@@ -55,6 +61,8 @@ flowchart LR
 
 - Deploy staging sau merge main.
 - Production cần manual approval trong giai đoạn đầu.
+- Vercel Cron hoặc worker tương đương chạy job anonymize lead quá hạn 12 tháng.
+- Gửi email lead notification qua Resend; lỗi provider phải retry và quan sát được.
 - Chạy migration theo chiến lược backward-compatible.
 - Có health check trước khi chuyển traffic.
 
@@ -66,12 +74,14 @@ Tối thiểu:
 - `requestId` xuyên request.
 - Health endpoints: liveness và readiness.
 - Theo dõi HTTP error rate, latency, database connection và storage error.
+- Theo dõi email sent/failed/retry và số lead đã anonymize.
 - Error tracking cho web/API nếu có ngân sách.
 
 ## 7. Backup và restore
 
 - Backup PostgreSQL định kỳ.
 - Object storage bật versioning/lifecycle nếu dịch vụ hỗ trợ.
+- Vercel Blob có lifecycle/versioning theo khả năng gói dịch vụ; không backup bằng cách sao chép filesystem runtime.
 - Có tài liệu restore và kiểm thử restore định kỳ.
 - Không coi backup là hợp lệ nếu chưa thử phục hồi.
 

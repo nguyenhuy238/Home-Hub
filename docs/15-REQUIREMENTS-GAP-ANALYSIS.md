@@ -1,17 +1,17 @@
 # 15 — Requirements Gap Analysis
 
-Tài liệu này bổ sung các yêu cầu thường bị bỏ sót khi biến ý tưởng “website giới thiệu sản phẩm cho nhiều cửa hàng” thành một sản phẩm có thể vận hành. Các đề xuất bên dưới là baseline để bắt đầu coding; câu nào ảnh hưởng đến nghiệp vụ hoặc chi phí cần được chốt trong `docs/OPEN-QUESTIONS.md`.
+Tài liệu này bổ sung các yêu cầu thường bị bỏ sót khi biến ý tưởng “website giới thiệu sản phẩm cho nhiều cửa hàng” thành một sản phẩm có thể vận hành. Các quyết định trong `docs/OPEN-QUESTIONS.md` đã được chốt ngày 2026-08-05 và được áp dụng ở đây.
 
 ## 1. Những yêu cầu đã xác định là bắt buộc cho MVP
 
 | Nhóm | Yêu cầu cần có | Lý do |
 |---|---|---|
-| Tenant | Store slug duy nhất, trạng thái ACTIVE/SUSPENDED/ARCHIVED, dữ liệu có `store_id` | Tạo link riêng và cô lập cửa hàng |
+| Tenant | Store slug duy nhất, alias slug, trạng thái ACTIVE/SUSPENDED/ARCHIVED, dữ liệu có `store_id` | Tạo link riêng và cô lập cửa hàng |
 | Onboarding | Platform admin tạo store + owner; owner hoàn tất hồ sơ và đăng sản phẩm đầu tiên | Có thể demo end-to-end |
 | Catalog | Category, brand tùy chọn, product, service, ảnh, giá linh hoạt, draft/publish/hide | Phù hợp nội thất, thiết bị vệ sinh, gạch men và dịch vụ |
 | Content | Preview trước publish, slug ổn định, soft delete, audit log | Tránh xuất bản nhầm và mất dữ liệu |
-| Media | Object storage, resize/WebP hoặc AVIF, alt text, giới hạn MIME/kích thước | Ảnh là nội dung chính và ảnh hưởng tốc độ |
-| Contact | Gọi điện/Zalo/Messenger và form tư vấn gắn với store/product | Mục tiêu chuyển đổi của giai đoạn 1 |
+| Media | Vercel Blob, resize/WebP hoặc AVIF, alt text, giới hạn MIME/kích thước | Ảnh là nội dung chính và ảnh hưởng tốc độ |
+| Contact | Gọi điện/Zalo/Messenger, form tư vấn, email notification và anonymize sau 12 tháng | Mục tiêu chuyển đổi và privacy |
 | SEO | SSR/ISR, canonical, sitemap, Open Graph, structured data cơ bản | Link Facebook/Zalo phải xem được và có preview đúng |
 | Security | Auth, RBAC, rate limit, tenant scoping, cross-tenant tests, log redaction | Rủi ro nghiêm trọng nhất của SaaS đa tenant |
 | Operations | Health check, migration, backup/restore, CI, staging | Có thể triển khai và bảo vệ dữ liệu thật |
@@ -20,17 +20,17 @@ Tài liệu này bổ sung các yêu cầu thường bị bỏ sót khi biến �
 
 ### 2.1 URL và nhận diện cửa hàng
 
-Baseline MVP: dùng subpath `/cua-hang/{storeSlug}`. Chưa làm custom domain, nhưng không hard-code route ở nhiều nơi để có thể thêm sau. Slug được tạo từ tên, có thể đổi bởi Owner với cảnh báo ảnh hưởng link cũ; nếu cho đổi, cần redirect hoặc alias.
+MVP dùng subpath `/cua-hang/{storeSlug}`. Owner được đổi slug; slug cũ lưu trong `store_slug_aliases` và redirect 301. Custom domain được triển khai ở phase sau qua domain mapping/verification của Vercel.
 
 ### 2.2 Vai trò và mời thành viên
 
-Baseline MVP: một user có thể thuộc nhiều store; Owner có thể mời thành viên bằng email hoặc thêm user đã tồn tại; Manager chỉ quản lý catalog và lead, chưa được gán OWNER. Nếu chưa kịp làm email invitation, Platform admin có thể tạo thành viên từ admin platform và schema vẫn giữ trạng thái `INVITED`.
+MVP chỉ có một user OWNER cho một store. Platform admin tạo user, store và membership trong transaction; không có email invitation, Manager hay member management UI.
 
 ### 2.3 Sản phẩm và dịch vụ
 
 - `Product` là mặt hàng có gallery, SKU tùy chọn, giá và thuộc tính.
 - `Service` là mặt hàng phi vật lý có ảnh, mô tả, mức giá tham khảo và CTA tư vấn; không có tồn kho/SKU bắt buộc.
-- MVP cho phép một product thuộc một category để form và query đơn giản. Nhiều category là backlog nếu dữ liệu thực tế chứng minh cần.
+- Product có thể thuộc nhiều category qua `product_categories`; mọi liên kết phải cùng tenant.
 - Thuộc tính dùng bảng definition/value như tài liệu database; chỉ hỗ trợ TEXT/NUMBER/BOOLEAN/SELECT, chưa làm schema tùy ý.
 
 ### 2.4 Trạng thái và xuất bản
@@ -43,11 +43,11 @@ Hỗ trợ `FIXED`, `FROM`, `RANGE`, `CONTACT`. Tiền lưu Decimal/numeric vớ
 
 ### 2.6 Rich text và ảnh
 
-Baseline an toàn: mô tả plain text/Markdown giới hạn, hoặc rich text được sanitize bằng allowlist. Không render HTML tự do. Ảnh tải trực tiếp lên object storage bằng signed URL; server sở hữu object key, không dùng tên file từ client làm path.
+Mô tả dùng rich-text editor. Server sanitize bằng allowlist trước khi lưu/render, không render HTML tự do. Ảnh tải trực tiếp lên Vercel Blob bằng signed upload; server sở hữu object key, không dùng tên file từ client làm path.
 
 ### 2.7 Lead, riêng tư và retention
 
-Lead chỉ thu họ tên, số điện thoại, email tùy chọn, nội dung, sản phẩm quan tâm và nguồn. Owner/Manager mới xem được lead. Đề xuất retention 24 tháng kể từ lần cập nhật cuối, sau đó ẩn danh hoặc xóa theo chính sách được công bố; cần chốt trước khi có dữ liệu thật.
+Lead chỉ thu họ tên, số điện thoại, email tùy chọn, nội dung, sản phẩm quan tâm và nguồn. Owner mới xem được lead. Gửi email notification qua Resend sau commit; sau 12 tháng job idempotent anonymize PII, giữ metadata tối thiểu.
 
 ## 3. Yêu cầu vận hành và tăng trưởng nên chuẩn bị
 
@@ -58,6 +58,7 @@ Lead chỉ thu họ tên, số điện thoại, email tùy chọn, nội dung, s
 - Có event/UTM source hoặc view count ở P2; MVP chỉ lưu `source` do client khai báo với allowlist và không coi đó là attribution chính xác.
 - Có trang điều khoản, chính sách riêng tư và thông tin liên hệ của nền tảng trước production.
 - Có cơ chế deactivate/export dữ liệu khi cửa hàng ngừng sử dụng.
+- Vercel Cron hoặc worker tương đương phải chạy job anonymize và có retry email delivery.
 
 ## 4. Definition of Ready trước khi code module
 
@@ -73,4 +74,4 @@ Một task chỉ được bắt đầu khi đã có:
 
 ## 5. Không đưa vào MVP dù dễ bị yêu cầu thêm
 
-Giỏ hàng, thanh toán, vận chuyển, tồn kho thời gian thực, marketplace tổng hợp, chat realtime, mobile native, custom domain, theme builder CSS tự do, AI recommendation và dashboard analytics nâng cao. Mỗi mục chỉ được thêm khi có ADR, acceptance criteria và tác động vận hành rõ.
+Giỏ hàng, thanh toán, vận chuyển, tồn kho thời gian thực, marketplace tổng hợp, chat realtime, mobile native, theme builder CSS tự do, AI recommendation và dashboard analytics nâng cao vẫn ngoài MVP. Custom domain là phase sau đã được chấp thuận và vẫn cần ADR/acceptance criteria triển khai riêng.

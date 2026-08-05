@@ -43,7 +43,8 @@
 - Thu thập tối thiểu dữ liệu liên hệ.
 - Hạn chế người có quyền xem lead.
 - Không bán/chia sẻ dữ liệu tenant cho tenant khác.
-- Chuẩn bị chính sách retention/xóa dữ liệu khi triển khai thực tế.
+- Lead PII được anonymize sau 12 tháng; giữ metadata tối thiểu phục vụ thống kê/audit.
+- Email notification không được chứa secret hoặc log đầy đủ PII.
 
 ## Compatibility
 

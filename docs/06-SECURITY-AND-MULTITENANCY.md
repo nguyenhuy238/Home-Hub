@@ -16,15 +16,17 @@
 Tenant context được suy ra từ:
 
 1. Authenticated user.
-2. Store membership đang hoạt động.
-3. Store đang hoạt động.
-4. Store được chọn trong session/header đã được backend xác thực.
+2. Membership `OWNER` duy nhất đang hoạt động.
+3. Store đang hoạt động cho thao tác admin.
 
-Client có thể gửi ID cửa hàng đang chọn, nhưng backend phải xác minh membership trước khi tạo trusted context.
+MVP không có store selector, không có email invitation và client không được
+tự chọn `storeId`. Nếu user đã thuộc store khác, platform admin phải xử lý
+membership bằng workflow được kiểm soát.
 
 ### Public request
 
-Tenant được suy ra từ `storeSlug`; backend chỉ trả store `ACTIVE` và dữ liệu `PUBLISHED`.
+Tenant được suy ra từ `storeSlug`; backend trả catalog của store `ACTIVE`,
+hoặc trạng thái/thông báo của store `SUSPENDED` nhưng không trả dữ liệu catalog.
 
 ## 3. Chống IDOR
 
@@ -51,14 +53,13 @@ Không kiểm tra ownership sau khi đã tải resource bằng ID đơn lẻ.
 
 RBAC cấp cửa hàng:
 
-| Quyền | OWNER | MANAGER | EDITOR | VIEWER |
-|---|---:|---:|---:|---:|
-| Xem dashboard | ✓ | ✓ | ✓ | ✓ |
-| CRUD sản phẩm | ✓ | ✓ | ✓ | chỉ xem |
-| Quản lý yêu cầu | ✓ | ✓ | tùy chính sách | chỉ xem |
-| Cấu hình cửa hàng | ✓ | ✓ | ✗ | ✗ |
-| Quản lý thành viên | ✓ | tùy chính sách | ✗ | ✗ |
-| Gán OWNER | ✓ | ✗ | ✗ | ✗ |
+| Quyền | OWNER | PLATFORM ADMIN |
+|---|---:|---:|
+| Xem dashboard | ✓ | tùy scope |
+| CRUD sản phẩm/dịch vụ | ✓ | không trực tiếp |
+| Quản lý yêu cầu | ✓ | không trực tiếp |
+| Cấu hình cửa hàng và đổi slug | ✓ | hỗ trợ khi cần |
+| Tạo store/membership | ✗ | ✓ |
 
 Platform admin là scope riêng, không dùng chung role store.
 
@@ -66,7 +67,7 @@ Platform admin là scope riêng, không dùng chung role store.
 
 - Validate DTO bằng whitelist và reject field lạ ở API nhạy cảm.
 - Giới hạn độ dài tên, slug, mô tả và message.
-- Sanitize/kiểm soát rich text trước khi render.
+- Rich text phải được sanitize server-side bằng allowlist trước khi lưu/render; test payload XSS.
 - Không render HTML người dùng nhập bằng `dangerouslySetInnerHTML` nếu chưa sanitize.
 - Dùng parameterized query qua Prisma.
 
@@ -75,6 +76,7 @@ Platform admin là scope riêng, không dùng chung role store.
 - Whitelist MIME: JPEG, PNG, WebP; SVG chỉ khi có quy trình sanitize rõ.
 - Giới hạn kích thước và số lượng ảnh.
 - Tên object sinh bởi server, không dùng tên file client làm path tin cậy.
+- Môi trường đầu tiên dùng Vercel Blob; không lưu media lâu dài trong filesystem Vercel.
 - Signed URL có thời hạn ngắn.
 - Xác minh metadata sau upload nếu cần.
 - Không cho upload executable/public HTML.
@@ -86,6 +88,8 @@ Platform admin là scope riêng, không dùng chung role store.
 - Validate số điện thoại và độ dài message.
 - Không phản hồi thông tin cho biết số điện thoại/email đã tồn tại.
 - Log tối thiểu; có chính sách lưu trữ/xóa PII.
+- Gửi email notification qua provider transactional sau khi lead transaction commit; lỗi gửi không được làm mất lead.
+- Anonymize PII lead sau 12 tháng bằng job idempotent; giữ metadata tối thiểu.
 
 ## 9. Secrets và logging
 

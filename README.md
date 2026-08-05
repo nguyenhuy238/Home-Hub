@@ -41,7 +41,8 @@ Sao chép toàn bộ nội dung của thư mục này vào thư mục gốc repo
 - Prisma ORM
 - Tailwind CSS + shadcn/ui
 - REST API + OpenAPI
-- S3-compatible object storage hoặc Cloudinary
+- Vercel cho môi trường đầu tiên, Vercel Blob cho media, PostgreSQL managed
+- Resend (baseline) cho email thông báo lead
 - pnpm workspace + Turborepo
 - Docker + GitHub Actions
 

@@ -33,7 +33,8 @@
 
 ## 3. Admin
 
-- Sidebar ngắn: Tổng quan, Sản phẩm, Danh mục, Liên hệ, Cửa hàng, Thành viên.
+- Sidebar ngắn: Tổng quan, Sản phẩm, Dịch vụ, Danh mục, Liên hệ, Cửa hàng.
+- MVP không hiển thị store selector hoặc màn hình quản lý thành viên.
 - Form chia section, không dồn toàn bộ vào một khối dài.
 - Autosave không bắt buộc; hiển thị rõ trạng thái đã lưu/chưa lưu.
 - Cảnh báo trước thao tác xóa/ẩn.

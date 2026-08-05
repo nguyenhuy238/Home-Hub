@@ -32,6 +32,9 @@ GET  /api/v1/public/stores/{storeSlug}/services
 POST /api/v1/public/stores/{storeSlug}/contact-requests
 ```
 
+Store `SUSPENDED` trả trạng thái và thông báo public nhưng không trả catalog.
+Slug cũ trong `store_slug_aliases` redirect 301 tới slug hiện tại ở public route.
+
 ### Store admin
 
 ```text
@@ -59,10 +62,11 @@ PATCH  /api/v1/admin/contact-requests/{contactRequestId}/status
 
 GET    /api/v1/admin/store-settings
 PATCH  /api/v1/admin/store-settings
+PATCH  /api/v1/admin/store-settings/slug
 POST   /api/v1/admin/media/upload-url
 ```
 
-Tenant được xác định từ authenticated context. Không đặt `storeId` trong body để client tự chọn.
+Tenant được xác định từ membership duy nhất của user hiện tại. Không đặt `storeId` trong body để client tự chọn và không có store selector trong MVP.
 
 ### Platform admin
 
@@ -73,6 +77,9 @@ GET   /api/v1/platform/stores/{storeId}
 PATCH /api/v1/platform/stores/{storeId}/status
 POST  /api/v1/platform/stores/{storeId}/owners
 ```
+
+Platform admin là nơi duy nhất tạo membership `OWNER`; endpoint từ chối user đã
+thuộc một store trong MVP.
 
 ## 3. Response chuẩn
 
@@ -136,18 +143,22 @@ GET /api/v1/public/stores/{storeSlug}/products
   &pageSize=24
   &search=ban+an
   &categorySlug=ban-ghe
+  &categorySlug=ban-an
   &brandSlug=...
   &featured=true
   &sort=newest
 ```
 
 Chỉ whitelist giá trị sort. Không nối trực tiếp query client vào SQL.
+Category filter dùng nhiều giá trị lặp lại và truy vấn qua `product_categories`.
 
 ## 6. Idempotency và concurrency
 
 - PATCH dùng cập nhật một phần.
 - Có thể bổ sung `version`/optimistic concurrency cho form quan trọng sau MVP.
 - Upload URL có thời hạn ngắn và giới hạn loại file/kích thước.
+- Rich text chỉ nhận payload được validate và sanitize server-side; không tin HTML từ client.
+- Giá public luôn có currency `VND` trong MVP.
 
 ## 7. Public DTO
 
@@ -158,3 +169,4 @@ Public API không trả:
 - email quản trị.
 - storage secret/key không an toàn.
 - sản phẩm draft/hidden/deleted.
+- thông tin email delivery hoặc PII đã anonymize.

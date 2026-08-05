@@ -162,8 +162,9 @@ components:
       properties:
         name: { type: string }
         slug: { type: string }
-        status: { type: string, enum: [ACTIVE] }
+        status: { type: string, enum: [ACTIVE, SUSPENDED] }
         description: { type: string, nullable: true }
+        suspensionNotice: { type: string, nullable: true }
         phone: { type: string, nullable: true }
         logoUrl: { type: string, format: uri, nullable: true }
         bannerUrl: { type: string, format: uri, nullable: true }
@@ -180,6 +181,7 @@ components:
         slug: { type: string }
         priceType: { type: string, enum: [FIXED, CONTACT, FROM, RANGE] }
         price: { type: number, format: double, nullable: true }
+        currency: { type: string, enum: [VND], default: VND }
         thumbnailUrl: { type: string, format: uri, nullable: true }
         publicationStatus: { type: string, enum: [PUBLISHED] }
     PaginationMeta:
@@ -206,6 +208,7 @@ components:
         slug: { type: string }
         priceType: { type: string, enum: [FIXED, CONTACT, FROM, RANGE] }
         price: { type: number, format: double, nullable: true }
+        currency: { type: string, enum: [VND], default: VND }
         coverImageUrl: { type: string, format: uri, nullable: true }
         publicationStatus: { type: string, enum: [PUBLISHED] }
     ServicePageEnvelope:

@@ -12,3 +12,7 @@
 | R-08 | Token bị lộ qua frontend/log | Rất cao | Thấp-Trung bình | HttpOnly cookie/session, redaction, secret scanning |
 | R-09 | Dự án khó hoàn thành do stack quá nặng | Cao | Trung bình | Modular monolith, không microservices, milestone nhỏ |
 | R-10 | SEO/social preview sai | Trung bình | Trung bình | SSR metadata, public URL tests, preview verification |
+| R-11 | Rich text chứa XSS | Cao | Trung bình | Sanitize server-side allowlist, không render HTML thô, test payload |
+| R-12 | Email provider lỗi hoặc gửi trùng | Trung bình | Trung bình | Notification status, retry/idempotency, log provider outcome |
+| R-13 | Job anonymize không chạy đúng hạn | Cao | Thấp-Trung bình | Scheduled job, metric overdue, dry-run/restore test |
+| R-14 | Phụ thuộc Vercel Blob/Vercel domain | Trung bình | Trung bình | Adapter storage/domain, object key không phụ thuộc provider |

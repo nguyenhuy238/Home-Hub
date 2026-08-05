@@ -14,7 +14,8 @@ erDiagram
     STORES ||--o{ BRANDS : owns
     STORES ||--o{ PRODUCTS : owns
     STORES ||--o{ SERVICES : owns
-    CATEGORIES ||--o{ PRODUCTS : classifies
+    CATEGORIES ||--o{ PRODUCT_CATEGORIES : classifies
+    PRODUCTS ||--o{ PRODUCT_CATEGORIES : grouped
     BRANDS ||--o{ PRODUCTS : brands
     PRODUCTS ||--o{ PRODUCT_IMAGES : has
     PRODUCTS ||--o{ PRODUCT_ATTRIBUTE_VALUES : has
@@ -24,6 +25,7 @@ erDiagram
     STORES ||--|| STORE_SETTINGS : configures
     USERS ||--o{ REFRESH_TOKENS : owns
     STORES ||--o{ AUDIT_LOGS : records
+    STORES ||--o{ STORE_SLUG_ALIASES : redirects
 ```
 
 ## 3. Bảng chính
@@ -34,7 +36,7 @@ erDiagram
 - `email` unique, normalized.
 - `password_hash`.
 - `display_name`.
-- `status`: ACTIVE, INVITED, LOCKED, DISABLED.
+- `status`: ACTIVE, LOCKED, DISABLED.
 - timestamps.
 
 ### `stores`
@@ -49,9 +51,10 @@ erDiagram
 ### `store_members`
 
 - `id`, `store_id`, `user_id`.
-- `role`: OWNER, MANAGER, EDITOR, VIEWER.
-- `status`: ACTIVE, INVITED, DISABLED.
+- `role`: OWNER trong MVP.
+- `status`: ACTIVE, DISABLED.
 - unique `(store_id, user_id)`.
+- MVP application constraint: một user chỉ có một membership ACTIVE.
 - index `(user_id, status)` và `(store_id, role)`.
 
 ### `categories`
@@ -69,9 +72,9 @@ erDiagram
 
 ### `products`
 
-- `id`, `store_id`, `category_id`, `brand_id` nullable.
+- `id`, `store_id`, `brand_id` nullable.
 - `name`, `slug`, `sku` nullable.
-- `short_description`, `description`.
+- `short_description`, `description_html` đã sanitize từ rich-text editor.
 - `price_type`: FIXED, CONTACT, FROM, RANGE.
 - `price`, `sale_price`, `min_price`, `max_price` nullable.
 - `stock_status`: IN_STOCK, OUT_OF_STOCK, PREORDER, UNKNOWN.
@@ -81,10 +84,17 @@ erDiagram
 - unique `(store_id, slug)`.
 - unique `(store_id, sku)` khi SKU không null.
 
+### `product_categories`
+
+- `product_id`, `category_id`, `store_id`.
+- unique `(product_id, category_id)`.
+- product và category phải cùng `store_id`.
+- product ở trạng thái `PUBLISHED` phải có ít nhất một category.
+
 ### `services`
 
 - `id`, `store_id`.
-- `name`, `slug`, `short_description`, `description`.
+- `name`, `slug`, `short_description`, `description_html` đã sanitize.
 - `price_type`, `price`, `min_price`, `max_price` nullable theo cùng quy tắc `products`.
 - `publication_status`, `is_featured`, `published_at`.
 - `cover_image_key` nullable, timestamps, `deleted_at`.
@@ -118,8 +128,16 @@ erDiagram
 - `message`.
 - `status`: NEW, CONTACTED, COMPLETED, CANCELLED.
 - `source`: WEBSITE, FACEBOOK, ZALO, OTHER.
-- `assigned_to_user_id` nullable.
+- `notification_status`: PENDING, SENT, FAILED.
+- `notification_sent_at`, `notification_attempts`, `anonymized_at` nullable.
 - timestamps.
+
+### `store_slug_aliases`
+
+- `id`, `store_id`, `slug`, `created_at`.
+- `slug` unique toàn hệ thống.
+- Khi tạo/đổi slug, phải kiểm tra không trùng current slug hoặc alias của store khác trong transaction.
+- Khi Owner đổi slug, slug cũ được lưu tại đây và public route redirect 301 tới slug hiện tại.
 
 ### `store_settings`
 
@@ -149,14 +167,15 @@ erDiagram
 
 ```text
 products(store_id, publication_status, deleted_at)
-products(store_id, category_id, publication_status)
 products(store_id, slug)
+product_categories(store_id, category_id, product_id)
 services(store_id, publication_status, deleted_at)
 services(store_id, slug)
 categories(store_id, slug)
 brands(store_id, slug)
 contact_requests(store_id, status, created_at DESC)
 store_members(user_id, status)
+store_slug_aliases(slug)
 product_images(store_id, product_id, sort_order)
 ```
 

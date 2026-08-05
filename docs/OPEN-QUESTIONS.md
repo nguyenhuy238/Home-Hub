@@ -1,37 +1,24 @@
-# Open Questions
+# Decision Register
 
-Các quyết định dưới đây cần được chốt trước hoặc trong quá trình triển khai. AI không được tự thay đổi nghiệp vụ quan trọng mà không ghi nhận.
+Các quyết định dưới đây đã được chủ dự án xác nhận ngày **2026-08-05**. Đây là nguồn nghiệp vụ đã chốt; AI không được quay lại baseline cũ nếu chưa có quyết định mới.
 
-1. Một người dùng có thể quản lý nhiều cửa hàng ngay trong MVP hay chỉ chuẩn bị schema?
-2. Manager có được quản lý thành viên hay chỉ Owner?
-3. Có cần quy trình mời thành viên qua email ở MVP không?
-4. Store suspended hiển thị trang thông báo hay trả 404?
-5. Thuộc tính sản phẩm MVP dùng bảng definition/value hay JSONB đơn giản trước?
-6. Có cần rich-text editor hay chỉ Markdown/plain text có format hạn chế?
-7. Cloudinary hay S3-compatible storage cho môi trường đầu tiên?
-8. Có cần custom domain ở giai đoạn sau hay chỉ subpath?
-9. Thời gian lưu lead/contact request là bao lâu?
-10. Có gửi email thông báo khi có lead mới trong MVP không?
-11. Có cho Owner tự đổi slug không; nếu có thì có redirect/alias cho link cũ không?
-12. Có cần một product thuộc nhiều category trong MVP không?
-13. Retention lead là 24 tháng, ẩn danh hay xóa hoàn toàn?
-14. Có bắt buộc email invitation ở MVP hay Platform admin tạo membership là đủ?
-15. Currency MVP cố định VND hay cần cấu hình theo cửa hàng?
-
-## Baseline đề xuất để bắt đầu coding
-
-Nếu chưa có quyết định khác, dùng các giả định sau và ghi rõ trong task:
-
-- Một user có thể thuộc nhiều store ngay trong MVP.
-- Owner quản lý thành viên; Manager chưa được gán OWNER.
-- Invitation có thể tạo trạng thái `INVITED`; email provider là P1.
-- Store suspended trả trang thông báo public và khóa thao tác admin.
-- Attribute dùng definition/value với 4 kiểu dữ liệu; product có một category.
-- Mô tả dùng plain text/Markdown giới hạn đã sanitize.
-- Media dùng S3-compatible object storage; Cloudinary là phương án thay thế.
-- URL MVP là subpath, custom domain để P2.
-- Lead retention đề xuất 24 tháng, cần xác nhận trước production.
-- Currency mặc định VND; chưa làm đa tiền tệ.
+| # | Quyết định | Trạng thái và tác động |
+|---|---|---|
+| 1 | Một user chỉ thuộc một cửa hàng trong MVP | Đã chốt. Không làm store selector/multi-store switching; schema có thể mở rộng về sau. |
+| 2 | Chỉ có role `OWNER` | Đã chốt. Không triển khai `MANAGER`, `EDITOR`, `VIEWER` trong MVP. |
+| 3 | Không có email invitation | Đã chốt. Platform admin tạo user, store và membership `OWNER`. |
+| 4 | Store `SUSPENDED` hiển thị trang thông báo | Đã chốt. Không hiển thị catalog; admin bị khóa. |
+| 5 | Product attributes dùng definition/value | Đã chốt. Giữ các kiểu TEXT/NUMBER/BOOLEAN/SELECT. |
+| 6 | Dùng rich-text editor | Đã chốt. HTML/JSON đầu vào phải được sanitize server-side trước khi render. |
+| 7 | Triển khai đầu tiên trên Vercel | Đã chốt theo baseline: Vercel cho web/API, Vercel Blob cho media, PostgreSQL managed bên ngoài. |
+| 8 | Có custom domain | Đã chốt cho giai đoạn sau subpath MVP; cần domain mapping và verification trên Vercel. |
+| 9 | Lead lưu 12 tháng | Đã chốt. Sau 12 tháng phải anonymize, không giữ PII nguyên bản. |
+| 10 | Gửi email khi có lead mới | Đã chốt. MVP dùng email provider transactional; baseline triển khai là Resend. |
+| 11 | Owner được đổi store slug | Đã chốt. Slug cũ trở thành alias và redirect 301 tới slug mới. |
+| 12 | Product thuộc nhiều category | Đã chốt. Dùng bảng nối `product_categories`; mọi category phải cùng tenant. |
+| 13 | Retention xử lý bằng anonymization | Đã chốt. Xóa/ẩn danh PII, giữ metadata nghiệp vụ tối thiểu. |
+| 14 | Platform admin tạo membership | Đã chốt. Không cần luồng mời thành viên trong MVP. |
+| 15 | Currency cố định VND | Đã chốt. Không thêm cấu hình đa tiền tệ trong MVP. |
 
 ## Quy ước ghi quyết định
 

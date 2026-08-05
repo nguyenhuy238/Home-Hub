@@ -17,8 +17,8 @@
 - User, store, store_members schema.
 - Login/refresh/logout/me.
 - Platform admin tạo store + owner.
-- Store selector/context.
-- Auth, tenant và role guards.
+- Resolve tenant context từ membership OWNER duy nhất.
+- Auth, tenant và OWNER guard.
 - Cross-tenant integration tests.
 
 **Exit criteria:** owner A không thể đọc bất kỳ resource tenant B trong test mẫu.
@@ -31,6 +31,8 @@
 - Services.
 - Product images.
 - Flexible attributes bản MVP.
+- Nhiều category qua `product_categories`.
+- Rich-text editor với server-side sanitization.
 - Draft/publish/hide.
 - Preview trước publish và audit trạng thái xuất bản.
 - Audit log cho catalog.
@@ -53,6 +55,8 @@
 - Store profile/settings.
 - Contact form.
 - Lead management/status.
+- Email notification khi có lead mới.
+- Job anonymize lead PII sau 12 tháng.
 - Rate limit/spam protection.
 - Dashboard summary.
 
@@ -85,12 +89,12 @@
 - HH-012 Contact requests.
 - HH-013 Cross-tenant security tests.
 - HH-014 Deployment and backup.
+- HH-015 Store slug aliases/301 redirect.
 
 ### P1 — Nên có
 
 - Brand CRUD.
 - Product attributes definition/value.
-- Member management.
 - Audit log UI.
 - Sitemap và structured data.
 - Import CSV/Excel có giới hạn.
@@ -103,18 +107,18 @@
 - Redis cache.
 - Background jobs.
 - Advanced analytics.
-- Notification email/Zalo provider.
 - Full-text/faceted search nâng cao.
 
 ## Mẫu user story
 
 **HH-008 — Tạo sản phẩm**  
-Là Editor, tôi muốn tạo sản phẩm trong cửa hàng hiện tại để khách có thể xem sau khi sản phẩm được xuất bản.
+Là Owner, tôi muốn tạo sản phẩm trong cửa hàng của mình để khách có thể xem sau khi sản phẩm được xuất bản.
 
 **Acceptance criteria:**
 
 - Không có `storeId` trong body public DTO.
-- Category/brand phải thuộc tenant hiện tại.
+- Tất cả category/brand phải thuộc tenant hiện tại.
+- Có thể chọn nhiều category cùng tenant.
 - Slug unique trong store.
 - Giá tuân thủ `priceType`.
 - Có thể lưu draft.

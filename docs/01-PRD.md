@@ -11,7 +11,7 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 - Người dùng đăng nhập bằng email và mật khẩu.
 - Hệ thống hỗ trợ đăng xuất, refresh session và quên mật khẩu ở mốc sau nếu cần.
 - Tài khoản bị khóa không được truy cập admin.
-- Một người dùng có thể là thành viên của nhiều cửa hàng.
+- Một người dùng chỉ quản lý một cửa hàng trong MVP.
 
 ### FR-02 — Quản lý cửa hàng
 
@@ -20,11 +20,10 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 - Slug cửa hàng là duy nhất toàn hệ thống.
 - Cửa hàng bị khóa không cho phép chỉnh sửa và trang công khai hiển thị trạng thái phù hợp.
 
-### FR-03 — Quản lý thành viên cửa hàng
+### FR-03 — Membership cửa hàng
 
-- Owner xem danh sách thành viên.
-- Owner mời/thêm thành viên và gán vai trò theo phạm vi được cho phép.
-- Không cho phép xóa owner cuối cùng của cửa hàng.
+- Platform admin tạo membership `OWNER` cùng lúc tạo store.
+- MVP không có giao diện member management, email invitation hoặc các role khác.
 
 ### FR-04 — Quản lý danh mục
 
@@ -43,9 +42,10 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 ### FR-06 — Quản lý sản phẩm
 
 - CRUD sản phẩm.
-- Trường chính: tên, slug, SKU, mô tả ngắn, mô tả chi tiết, danh mục, thương hiệu, loại giá, giá, giá khuyến mãi, trạng thái tồn kho, trạng thái xuất bản, nổi bật.
+- Trường chính: tên, slug, SKU, mô tả ngắn, mô tả rich text đã sanitize, nhiều danh mục, thương hiệu, loại giá, giá, giá khuyến mãi, trạng thái tồn kho, trạng thái xuất bản, nổi bật.
 - Nhiều ảnh, kéo thả sắp xếp, chọn ảnh chính.
 - Hỗ trợ thuộc tính linh hoạt.
+- Một sản phẩm được gắn nhiều category trong cùng cửa hàng.
 - Soft delete sản phẩm.
 - Không công khai sản phẩm `DRAFT`, `HIDDEN` hoặc đã xóa.
 
@@ -53,6 +53,7 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 
 - CRUD dịch vụ tương tự catalog đơn giản.
 - Dịch vụ có tên, slug, mô tả, ảnh, mức giá tham khảo và trạng thái.
+- Mô tả product/service được nhập bằng rich-text editor và sanitize ở server.
 
 ### FR-08 — Website công khai
 
@@ -69,6 +70,7 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 - Nút gọi điện, Zalo, Facebook/Messenger.
 - Form yêu cầu tư vấn gồm họ tên, số điện thoại, nội dung và sản phẩm quan tâm.
 - Chủ cửa hàng xem danh sách và cập nhật trạng thái: `NEW`, `CONTACTED`, `COMPLETED`, `CANCELLED`.
+- Gửi email thông báo lead mới tới email owner sau khi tạo thành công.
 - Chống spam cơ bản bằng rate limit/honeypot hoặc CAPTCHA khi cần.
 
 ### FR-10 — SEO và chia sẻ
@@ -78,6 +80,7 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 - Canonical URL.
 - Sitemap theo dữ liệu đã xuất bản.
 - Structured data cơ bản cho LocalBusiness và Product/Service.
+- Sau MVP hỗ trợ custom domain theo store; MVP dùng subpath.
 
 ### FR-11 — Audit và thống kê cơ bản
 
@@ -91,10 +94,12 @@ HomeHub là SaaS multi-tenant cho website catalog đa cửa hàng. Mỗi cửa h
 - `FIXED` yêu cầu `price`; `CONTACT` không bắt buộc giá.
 - Slug sản phẩm duy nhất trong từng cửa hàng.
 - SKU duy nhất trong từng cửa hàng khi SKU được nhập.
-- Sản phẩm chỉ thuộc category/brand cùng cửa hàng.
+- Sản phẩm chỉ liên kết category/brand cùng cửa hàng; mọi liên kết category đi qua `product_categories`.
+- Owner có thể đổi store slug; slug cũ tạo alias và redirect 301.
 - Cửa hàng bị khóa không thể xuất bản nội dung mới.
-- Chỉ `OWNER` được quản lý quyền owner khác.
-- Không xóa owner cuối cùng.
+- MVP không có thao tác gán role hoặc xóa owner từ giao diện cửa hàng.
+- Currency MVP cố định VND; tiền lưu Decimal/numeric.
+- Lead PII được anonymize sau 12 tháng.
 
 ## 4. Yêu cầu phi chức năng tóm tắt
 

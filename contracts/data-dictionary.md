@@ -10,7 +10,7 @@
 
 ### StoreRole
 
-- `OWNER`, `MANAGER`, `EDITOR`, `VIEWER`.
+- MVP chỉ có `OWNER`.
 
 ### PublicationStatus
 
@@ -34,6 +34,22 @@
 
 - `NEW`, `CONTACTED`, `COMPLETED`, `CANCELLED`.
 
+### ContactNotificationStatus
+
+- `PENDING`: lead đã tạo, email chưa gửi hoặc đang retry.
+- `SENT`: email notification đã gửi thành công.
+- `FAILED`: provider lỗi sau lần thử; không làm mất lead.
+
+### LeadRetention
+
+- Sau 12 tháng, anonymize `customer_name`, `customer_phone`, `customer_email`
+  và nội dung có PII; giữ status, source, product reference và timestamps tối thiểu.
+
+### ProductCategory
+
+- Quan hệ nhiều-nhiều giữa product và category trong cùng một store.
+- Một product đã publish phải có ít nhất một category.
+
 ## Naming conventions
 
 - Database table/column: snake_case.
@@ -42,3 +58,4 @@
 - URL slug: lowercase kebab-case.
 - Timestamp: UTC trong database; format ISO 8601 ở API.
 - Tiền: lưu bằng decimal/numeric, không dùng floating point cho nghiệp vụ tiền.
+- Currency MVP: VND cố định, không nhận currency từ client.
