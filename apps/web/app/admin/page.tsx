@@ -7,12 +7,16 @@ import { adminApi } from '../../lib/admin-api';
 import { ServiceManager } from './ServiceManager';
 import { ProductForm } from './ProductForm';
 import { StoreSettingsForm } from './StoreSettingsForm';
-import type { AdminService, Category, Context, Lead, Product } from './types';
+import { BrandManager } from './BrandManager';
+import { AttributeManager } from './AttributeManager';
+import type { AdminService, AttributeDefinition, Brand, Category, Context, Lead, Product } from './types';
 
 export default function AdminPage() {
   const [context, setContext] = useState<Context | null>(null);
   const [categories, setCategories] = useState<Category[]>([]);
   const [products, setProducts] = useState<Product[]>([]);
+  const [brands, setBrands] = useState<Brand[]>([]);
+  const [attributeDefinitions, setAttributeDefinitions] = useState<AttributeDefinition[]>([]);
   const [services, setServices] = useState<AdminService[]>([]);
   const [leads, setLeads] = useState<Lead[]>([]);
   const [notice, setNotice] = useState('');
@@ -21,15 +25,19 @@ export default function AdminPage() {
   async function load() {
     setLoading(true);
     try {
-      const [storeContext, categoryData, productData, serviceData, leadData] = await Promise.all([
+      const [storeContext, categoryData, brandData, attributeData, productData, serviceData, leadData] = await Promise.all([
         adminApi<Context>('/admin/context'),
         adminApi<Category[]>('/admin/categories'),
+        adminApi<Brand[]>('/admin/brands'),
+        adminApi<AttributeDefinition[]>('/admin/attributes'),
         adminApi<Product[]>('/admin/products'),
         adminApi<AdminService[]>('/admin/services'),
         adminApi<Lead[]>('/admin/contact-requests'),
       ]);
       setContext(storeContext);
       setCategories(Array.isArray(categoryData) ? categoryData : []);
+      setBrands(Array.isArray(brandData) ? brandData : []);
+      setAttributeDefinitions(Array.isArray(attributeData) ? attributeData : []);
       setProducts(Array.isArray(productData) ? productData : []);
       setServices(Array.isArray(serviceData) ? serviceData : []);
       setLeads(Array.isArray(leadData) ? leadData : []);
@@ -68,8 +76,10 @@ export default function AdminPage() {
     {context && <>
       <section className="admin-intro"><div><p className="eyebrow">OWNER WORKSPACE</p><h1>{context.name}</h1><p className="admin-muted">/{context.slug} · {context.status === 'ACTIVE' ? 'Đang hiển thị' : 'Đang tạm ngưng'}</p></div><Link className="primary-button" href={`/cua-hang/${context.slug}`} target="_blank">Xem storefront <ArrowUpRight size={16} /></Link></section>
       <section className="admin-grid">
-        <div className="admin-panel admin-panel-wide"><div className="panel-heading"><div><p className="eyebrow">CATALOG</p><h2>Sản phẩm</h2></div><ProductForm categories={categories} onSaved={load} /></div>{products.length ? <div className="admin-table">{products.map((product) => <div className="admin-row" key={product.id}><div><strong>{product.name}</strong><small>{product.publicationStatus} · {product.priceType}</small></div><div className="row-actions"><ProductForm categories={categories} product={product} onSaved={load} /><button className="icon-button" onClick={() => void deleteProduct(product.id)} aria-label={`Ẩn ${product.name}`}><Trash2 size={16} /></button></div></div>)}</div> : <p className="admin-muted">Chưa có sản phẩm. Tạo sản phẩm đầu tiên để storefront có nội dung.</p>}</div>
+        <div className="admin-panel admin-panel-wide"><div className="panel-heading"><div><p className="eyebrow">CATALOG</p><h2>Sản phẩm</h2></div><ProductForm categories={categories} brands={brands} attributeDefinitions={attributeDefinitions} onSaved={load} /></div>{products.length ? <div className="admin-table">{products.map((product) => <div className="admin-row" key={product.id}><div><strong>{product.name}</strong><small>{product.brand ? `${product.brand.name} · ` : ''}{product.publicationStatus} · {product.priceType}</small></div><div className="row-actions"><ProductForm categories={categories} brands={brands} attributeDefinitions={attributeDefinitions} product={product} onSaved={load} /><button className="icon-button" onClick={() => void deleteProduct(product.id)} aria-label={`Ẩn ${product.name}`}><Trash2 size={16} /></button></div></div>)}</div> : <p className="admin-muted">Chưa có sản phẩm. Tạo sản phẩm đầu tiên để storefront có nội dung.</p>}</div>
         <div className="admin-panel"><div className="panel-heading"><div><p className="eyebrow">TAXONOMY</p><h2>Danh mục</h2></div><CategoryForm onCreated={load} /></div>{categories.length ? <div className="admin-table">{categories.map((category) => <div className="admin-row" key={category.id}><div><strong>{category.name}</strong><small>/{category.slug}</small></div><span className="status-dot">{category.status}</span></div>)}</div> : <p className="admin-muted">Chưa có danh mục.</p>}</div>
+        <div className="admin-panel"><BrandManager brands={brands} onChanged={load} /></div>
+        <div className="admin-panel"><AttributeManager categories={categories} definitions={attributeDefinitions} onChanged={load} /></div>
         <div className="admin-panel admin-panel-wide"><ServiceManager services={services} onChanged={load} /></div>
         <div className="admin-panel admin-panel-wide"><div className="panel-heading"><div><p className="eyebrow">CONTACT REQUESTS</p><h2>Yêu cầu liên hệ</h2></div><span className="panel-count">{leads.length}</span></div>{leads.length ? <div className="admin-table">{leads.map((lead) => <div className="admin-row lead-row" key={lead.id}><div><strong>{lead.customerName}{lead.product ? ` · ${lead.product.name}` : ''}</strong><small>{lead.customerPhone} · {new Date(lead.createdAt).toLocaleDateString('vi-VN')}<br />{lead.message}</small></div><select value={lead.status} onChange={(event) => void updateLead(lead.id, event.target.value)}><option value="NEW">Mới</option><option value="CONTACTED">Đã liên hệ</option><option value="COMPLETED">Hoàn tất</option><option value="CANCELLED">Đã hủy</option></select></div>)}</div> : <p className="admin-muted">Chưa có yêu cầu liên hệ.</p>}</div>
         <div className="admin-panel admin-panel-wide"><div className="panel-heading"><div><p className="eyebrow">STORE PROFILE</p><h2>Thông tin cửa hàng</h2></div><Store size={18} /></div><StoreSettingsForm context={context} onSaved={load} /></div>

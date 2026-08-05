@@ -1,5 +1,9 @@
 export type Category = { id: string; name: string; slug: string; status: string };
 
+export type Brand = { id: string; name: string; slug: string; logoKey: string | null; status: string };
+
+export type AttributeDefinition = { id: string; name: string; code: string; dataType: string; isFilterable: boolean; category: Category | null; optionsJson: { values?: string[] } | null };
+
 export type Product = {
   id: string;
   name: string;
@@ -13,6 +17,8 @@ export type Product = {
   descriptionHtml: string;
   stockStatus: string;
   isFeatured: boolean;
+  brand: Brand | null;
+  attributeValues?: Array<{ attributeDefinitionId: string; valueText: string | null; valueNumber: string | number | null; valueBoolean: boolean | null; definition: AttributeDefinition }>;
   categories?: Array<{ category: Category }>;
 };
 

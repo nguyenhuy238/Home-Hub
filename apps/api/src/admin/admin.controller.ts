@@ -1,10 +1,12 @@
-import { Body, Controller, Delete, Get, Param, Patch, Post, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
+import { Body, Controller, Delete, Get, Param, Patch, Post, Put, Query, Req, UploadedFile, UseGuards, UseInterceptors } from '@nestjs/common';
 import { FileInterceptor } from '@nestjs/platform-express';
 import { AuthGuard } from '../auth/auth.guard';
 import { OwnerGuard } from '../auth/owner.guard';
 import type { AuthenticatedRequest } from '../common/auth.types';
 import { AdminService } from './admin.service';
 import { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+import { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';
+import { CreateAttributeDefinitionDto, UpdateAttributeDefinitionDto, UpdateProductAttributesDto } from './dto/attribute.dto';
 import { ContactRequestListQueryDto, UpdateContactRequestStatusDto } from './dto/contact-request.dto';
 import { CreateProductDto, ProductListQueryDto, UpdateProductDto } from './dto/product.dto';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
@@ -42,6 +44,27 @@ export class AdminController {
   @Delete('categories/:id')
   async deleteCategory(@Param('id') id: string, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.deleteCategory(request.tenantId!, id, request.auth!.userId) }; }
 
+  @Get('brands')
+  async brands(@Req() request: AuthenticatedRequest) { return { data: await this.adminService.listBrands(request.tenantId!) }; }
+
+  @Post('brands')
+  async createBrand(@Body() input: CreateBrandDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.createBrand(request.tenantId!, input, request.auth!.userId) }; }
+
+  @Patch('brands/:id')
+  async updateBrand(@Param('id') id: string, @Body() input: UpdateBrandDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.updateBrand(request.tenantId!, id, input, request.auth!.userId) }; }
+
+  @Delete('brands/:id')
+  async deleteBrand(@Param('id') id: string, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.hideBrand(request.tenantId!, id, request.auth!.userId) }; }
+
+  @Get('attributes')
+  async attributes(@Req() request: AuthenticatedRequest) { return { data: await this.adminService.listAttributeDefinitions(request.tenantId!) }; }
+
+  @Post('attributes')
+  async createAttribute(@Body() input: CreateAttributeDefinitionDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.createAttributeDefinition(request.tenantId!, input, request.auth!.userId) }; }
+
+  @Patch('attributes/:id')
+  async updateAttribute(@Param('id') id: string, @Body() input: UpdateAttributeDefinitionDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.updateAttributeDefinition(request.tenantId!, id, input, request.auth!.userId) }; }
+
   @Get('products')
   async products(@Query() query: ProductListQueryDto, @Req() request: AuthenticatedRequest) { return this.adminService.listProducts(request.tenantId!, query); }
 
@@ -63,6 +86,12 @@ export class AdminController {
 
   @Delete('products/:id/images/:imageId')
   async deleteProductImage(@Param('id') id: string, @Param('imageId') imageId: string, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.deleteProductImage(request.tenantId!, id, imageId, request.auth!.userId) }; }
+
+  @Get('products/:id/attributes')
+  async productAttributes(@Param('id') id: string, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.getProductAttributes(request.tenantId!, id) }; }
+
+  @Put('products/:id/attributes')
+  async updateProductAttributes(@Param('id') id: string, @Body() input: UpdateProductAttributesDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.updateProductAttributes(request.tenantId!, id, input, request.auth!.userId) }; }
 
   @Get('services')
   async services(@Req() request: AuthenticatedRequest) { return { data: await this.adminService.listServices(request.tenantId!) }; }

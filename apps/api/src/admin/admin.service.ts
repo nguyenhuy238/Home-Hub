@@ -1,11 +1,13 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
 import { put } from '@vercel/blob';
 import { randomUUID } from 'node:crypto';
-import { CategoryStatus, Prisma, PublicationStatus } from '@prisma/client';
+import { AttributeDataType, BrandStatus, CategoryStatus, Prisma, PublicationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
 import { sanitizeRichText } from '../common/content';
 import { toDecimal, validatePricing } from '../common/pricing';
 import type { CreateCategoryDto, UpdateCategoryDto } from './dto/category.dto';
+import type { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';
+import type { CreateAttributeDefinitionDto, ProductAttributeValueInputDto, UpdateAttributeDefinitionDto, UpdateProductAttributesDto } from './dto/attribute.dto';
 import type { CreateProductDto, ProductListQueryDto, UpdateProductDto } from './dto/product.dto';
 import type { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
 import type { ContactRequestListQueryDto, UpdateContactRequestStatusDto } from './dto/contact-request.dto';
@@ -87,20 +89,76 @@ export class AdminService {
     return category;
   }
 
+  async listBrands(storeId: string) {
+    return this.prisma.brand.findMany({ where: { storeId }, orderBy: [{ status: 'asc' }, { name: 'asc' }] });
+  }
+
+  async createBrand(storeId: string, input: CreateBrandDto, actorUserId: string) {
+    const slug = input.slug ?? slugify(input.name);
+    try {
+      const brand = await this.prisma.brand.create({ data: { storeId, name: input.name.trim(), slug, logoKey: input.logoKey } });
+      await this.audit(storeId, actorUserId, 'CREATE_BRAND', 'BRAND', brand.id);
+      return brand;
+    } catch (error) { this.rethrowConflict(error, 'Slug thương hiệu đã được sử dụng'); }
+  }
+
+  async updateBrand(storeId: string, id: string, input: UpdateBrandDto, actorUserId: string) {
+    const current = await this.assertBrandRecord(storeId, id);
+    try {
+      const brand = await this.prisma.brand.update({ where: { id }, data: { name: input.name?.trim() ?? current.name, slug: input.slug ?? current.slug, logoKey: input.logoKey ?? current.logoKey, status: input.status ?? current.status } });
+      await this.audit(storeId, actorUserId, 'UPDATE_BRAND', 'BRAND', id, { name: current.name, status: current.status }, { name: brand.name, status: brand.status });
+      return brand;
+    } catch (error) { this.rethrowConflict(error, 'Slug thương hiệu đã được sử dụng'); }
+  }
+
+  async hideBrand(storeId: string, id: string, actorUserId: string) {
+    await this.assertBrandRecord(storeId, id);
+    const brand = await this.prisma.brand.update({ where: { id }, data: { status: BrandStatus.HIDDEN } });
+    await this.audit(storeId, actorUserId, 'HIDE_BRAND', 'BRAND', id);
+    return brand;
+  }
+
+  async listAttributeDefinitions(storeId: string) {
+    return this.prisma.productAttributeDefinition.findMany({ where: { storeId }, include: { category: { select: { id: true, name: true, slug: true } } }, orderBy: [{ sortOrder: 'asc' }, { name: 'asc' }] });
+  }
+
+  async createAttributeDefinition(storeId: string, input: CreateAttributeDefinitionDto, actorUserId: string) {
+    await this.assertOptionalCategory(storeId, input.categoryId);
+    this.validateAttributeOptions(input.dataType, input.optionsJson as unknown as Prisma.InputJsonValue | undefined);
+    try {
+      const definition = await this.prisma.productAttributeDefinition.create({ data: { storeId, categoryId: input.categoryId, name: input.name.trim(), code: input.code.toLowerCase(), dataType: input.dataType, isFilterable: input.isFilterable ?? false, sortOrder: input.sortOrder ?? 0, optionsJson: input.optionsJson as unknown as Prisma.InputJsonValue | undefined }, include: { category: { select: { id: true, name: true, slug: true } } } });
+      await this.audit(storeId, actorUserId, 'CREATE_ATTRIBUTE_DEFINITION', 'ATTRIBUTE_DEFINITION', definition.id);
+      return definition;
+    } catch (error) { this.rethrowConflict(error, 'Mã thuộc tính đã được sử dụng'); }
+  }
+
+  async updateAttributeDefinition(storeId: string, id: string, input: UpdateAttributeDefinitionDto, actorUserId: string) {
+    const current = await this.assertAttributeDefinition(storeId, id);
+    const dataType = input.dataType ?? current.dataType;
+    const optionsJson = input.optionsJson ?? current.optionsJson;
+    await this.assertOptionalCategory(storeId, input.categoryId ?? current.categoryId ?? undefined);
+    this.validateAttributeOptions(dataType, optionsJson as unknown as Prisma.InputJsonValue | null | undefined);
+    try {
+      const definition = await this.prisma.productAttributeDefinition.update({ where: { id }, data: { categoryId: input.categoryId ?? current.categoryId, name: input.name?.trim() ?? current.name, code: input.code?.toLowerCase() ?? current.code, dataType, isFilterable: input.isFilterable ?? current.isFilterable, sortOrder: input.sortOrder ?? current.sortOrder, optionsJson: input.optionsJson === undefined ? undefined : input.optionsJson as unknown as Prisma.InputJsonValue }, include: { category: { select: { id: true, name: true, slug: true } } } });
+      await this.audit(storeId, actorUserId, 'UPDATE_ATTRIBUTE_DEFINITION', 'ATTRIBUTE_DEFINITION', id);
+      return definition;
+    } catch (error) { this.rethrowConflict(error, 'Mã thuộc tính đã được sử dụng'); }
+  }
+
   async listProducts(storeId: string, query: ProductListQueryDto, publicOnly = false) {
     const page = query.page ?? 1;
     const pageSize = Math.min(query.pageSize ?? 24, 100);
     const categorySlugs = query.categorySlug ? (Array.isArray(query.categorySlug) ? query.categorySlug : [query.categorySlug]) : [];
     const where: Prisma.ProductWhereInput = { storeId, deletedAt: null, ...(publicOnly ? { publicationStatus: PublicationStatus.PUBLISHED } : {}), ...(query.search ? { name: { contains: query.search, mode: 'insensitive' } } : {}), ...(categorySlugs.length > 0 ? { categories: { some: { category: { slug: { in: categorySlugs }, status: CategoryStatus.ACTIVE } } } } : {}) };
     const [data, total] = await this.prisma.$transaction([
-      this.prisma.product.findMany({ where, include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] }, categories: { include: { category: true } } }, orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }], skip: (page - 1) * pageSize, take: pageSize }),
+      this.prisma.product.findMany({ where, include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] }, categories: { include: { category: true } }, brand: true, attributeValues: { include: { definition: true } } }, orderBy: [{ isFeatured: 'desc' }, { createdAt: 'desc' }], skip: (page - 1) * pageSize, take: pageSize }),
       this.prisma.product.count({ where }),
     ]);
     return { data, meta: { page, pageSize, total, totalPages: Math.ceil(total / pageSize) } };
   }
 
   async getProduct(storeId: string, id: string) {
-    const product = await this.prisma.product.findFirst({ where: { id, storeId, deletedAt: null }, include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] }, categories: { include: { category: true } }, brand: true } });
+    const product = await this.prisma.product.findFirst({ where: { id, storeId, deletedAt: null }, include: { images: { orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }] }, categories: { include: { category: true } }, brand: true, attributeValues: { include: { definition: true } } } });
     if (!product) throw new NotFoundException('Không tìm thấy sản phẩm');
     return product;
   }
@@ -132,7 +190,7 @@ export class AdminService {
     this.assertPublishCategories(publicationStatus, categoryIds);
     validatePricing({ priceType: nextPriceType, price: nextPrice, salePrice: nextSalePrice, minPrice: nextMinPrice, maxPrice: nextMaxPrice });
     await this.assertCategories(storeId, categoryIds);
-    const brandId = input.brandId ?? current.brandId ?? undefined;
+    const brandId = input.brandId === undefined ? current.brandId : input.brandId;
     if (brandId) await this.assertBrand(storeId, brandId);
     const product = await this.prisma.$transaction(async (tx) => {
       await tx.productCategory.deleteMany({ where: { productId: id, storeId } });
@@ -171,6 +229,28 @@ export class AdminService {
     await this.prisma.productImage.delete({ where: { id: imageId } });
     await this.audit(storeId, actorUserId, 'DELETE_PRODUCT_IMAGE', 'PRODUCT_IMAGE', imageId);
     return { id: imageId };
+  }
+
+  async getProductAttributes(storeId: string, productId: string) {
+    await this.getProduct(storeId, productId);
+    return this.prisma.productAttributeValue.findMany({ where: { storeId, productId }, include: { definition: { include: { category: { select: { id: true, name: true, slug: true } } } } }, orderBy: { definition: { sortOrder: 'asc' } } });
+  }
+
+  async updateProductAttributes(storeId: string, productId: string, input: UpdateProductAttributesDto, actorUserId: string) {
+    await this.getProduct(storeId, productId);
+    const values = input.values ?? [];
+    const definitionIds = [...new Set(values.map((value) => value.attributeDefinitionId))];
+    const definitions = await this.prisma.productAttributeDefinition.findMany({ where: { storeId, id: { in: definitionIds } } });
+    if (definitions.length !== definitionIds.length) throw new BadRequestException('Một hoặc nhiều thuộc tính không thuộc cửa hàng hiện tại');
+    const definitionMap = new Map(definitions.map((definition) => [definition.id, definition]));
+    const normalized = values.map((value) => this.normalizeAttributeValue(value, definitionMap.get(value.attributeDefinitionId)!));
+    const updated = await this.prisma.$transaction(async (tx) => {
+      await tx.productAttributeValue.deleteMany({ where: { storeId, productId } });
+      if (normalized.length > 0) await tx.productAttributeValue.createMany({ data: normalized.map((value) => ({ storeId, productId, ...value })) });
+      return tx.productAttributeValue.findMany({ where: { storeId, productId }, include: { definition: true }, orderBy: { definition: { sortOrder: 'asc' } } });
+    });
+    await this.audit(storeId, actorUserId, 'UPDATE_PRODUCT_ATTRIBUTES', 'PRODUCT', productId);
+    return updated;
   }
 
   async listServices(storeId: string) {
@@ -238,6 +318,49 @@ export class AdminService {
   private async assertBrand(storeId: string, id: string) {
     const brand = await this.prisma.brand.findFirst({ where: { id, storeId } });
     if (!brand) throw new BadRequestException('Thương hiệu không thuộc cửa hàng hiện tại');
+  }
+
+  private async assertBrandRecord(storeId: string, id: string) {
+    const brand = await this.prisma.brand.findFirst({ where: { id, storeId } });
+    if (!brand) throw new NotFoundException('Không tìm thấy thương hiệu');
+    return brand;
+  }
+
+  private async assertOptionalCategory(storeId: string, categoryId?: string) {
+    if (!categoryId) return;
+    await this.assertCategory(storeId, categoryId);
+  }
+
+  private async assertAttributeDefinition(storeId: string, id: string) {
+    const definition = await this.prisma.productAttributeDefinition.findFirst({ where: { id, storeId } });
+    if (!definition) throw new NotFoundException('Không tìm thấy thuộc tính');
+    return definition;
+  }
+
+  private validateAttributeOptions(dataType: AttributeDataType, optionsJson: Prisma.JsonValue | Prisma.InputJsonValue | null | undefined) {
+    if (dataType !== AttributeDataType.SELECT) return;
+    const values = optionsJson && typeof optionsJson === 'object' && !Array.isArray(optionsJson) && 'values' in optionsJson ? optionsJson.values : undefined;
+    if (!Array.isArray(values) || values.length === 0 || values.some((value) => typeof value !== 'string' || value.trim() === '')) throw new BadRequestException('Thuộc tính SELECT cần optionsJson.values là danh sách chuỗi');
+  }
+
+  private normalizeAttributeValue(input: ProductAttributeValueInputDto, definition: { id: string; dataType: AttributeDataType; optionsJson: Prisma.JsonValue | null }) {
+    if (definition.dataType === AttributeDataType.TEXT) {
+      if (!input.valueText?.trim()) throw new BadRequestException(`Thuộc tính ${definition.id} cần valueText`);
+      return { attributeDefinitionId: definition.id, valueText: input.valueText.trim(), valueNumber: null, valueBoolean: null, valueJson: Prisma.JsonNull };
+    }
+    if (definition.dataType === AttributeDataType.SELECT) {
+      this.validateAttributeOptions(definition.dataType, definition.optionsJson);
+      const options = definition.optionsJson && typeof definition.optionsJson === 'object' && !Array.isArray(definition.optionsJson) && 'values' in definition.optionsJson && Array.isArray(definition.optionsJson.values) ? definition.optionsJson.values : [];
+      if (!input.valueText || !options.includes(input.valueText)) throw new BadRequestException(`Giá trị không hợp lệ cho thuộc tính ${definition.id}`);
+      return { attributeDefinitionId: definition.id, valueText: input.valueText, valueNumber: null, valueBoolean: null, valueJson: Prisma.JsonNull };
+    }
+    if (definition.dataType === AttributeDataType.NUMBER) {
+      const valueNumber = toDecimal(input.valueNumber);
+      if (!valueNumber) throw new BadRequestException(`Thuộc tính ${definition.id} cần valueNumber`);
+      return { attributeDefinitionId: definition.id, valueText: null, valueNumber, valueBoolean: null, valueJson: Prisma.JsonNull };
+    }
+    if (typeof input.valueBoolean !== 'boolean') throw new BadRequestException(`Thuộc tính ${definition.id} cần valueBoolean`);
+    return { attributeDefinitionId: definition.id, valueText: null, valueNumber: null, valueBoolean: input.valueBoolean, valueJson: Prisma.JsonNull };
   }
 
   private assertPublishCategories(status: PublicationStatus, categoryIds: string[]) {
