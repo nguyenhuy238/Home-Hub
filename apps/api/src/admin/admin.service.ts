@@ -1,5 +1,5 @@
 import { BadRequestException, ConflictException, Injectable, NotFoundException, ServiceUnavailableException } from '@nestjs/common';
-import { put } from '@vercel/blob';
+import { del, put } from '@vercel/blob';
 import { randomUUID } from 'node:crypto';
 import { AttributeDataType, BrandStatus, CategoryStatus, Prisma, PublicationStatus } from '@prisma/client';
 import { PrismaService } from '../prisma/prisma.service';
@@ -10,6 +10,7 @@ import type { CreateBrandDto, UpdateBrandDto } from './dto/brand.dto';
 import type { CreateAttributeDefinitionDto, ProductAttributeValueInputDto, UpdateAttributeDefinitionDto, UpdateProductAttributesDto } from './dto/attribute.dto';
 import type { CreateProductDto, ProductListQueryDto, UpdateProductDto } from './dto/product.dto';
 import type { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
+import type { ReorderProductImagesDto, UpdateProductImageDto } from './dto/media.dto';
 import type { ContactRequestListQueryDto, UpdateContactRequestStatusDto } from './dto/contact-request.dto';
 import type { UpdateStoreSettingsDto, UpdateStoreSlugDto } from './dto/store-settings.dto';
 
@@ -215,18 +216,54 @@ export class AdminService {
     if (!process.env.BLOB_READ_WRITE_TOKEN) throw new ServiceUnavailableException('Chưa cấu hình Vercel Blob');
     const extension = file.mimetype === 'image/jpeg' ? 'jpg' : file.mimetype.split('/')[1];
     const blob = await put(`stores/${storeId}/products/${productId}/${randomUUID()}.${extension}`, file.buffer, { access: 'public', addRandomSuffix: false, contentType: file.mimetype });
+    const imageCount = await this.prisma.productImage.count({ where: { storeId, productId } });
+    const shouldBePrimary = isPrimary || imageCount === 0;
     const image = await this.prisma.$transaction(async (tx) => {
-      if (isPrimary) await tx.productImage.updateMany({ where: { storeId, productId }, data: { isPrimary: false } });
-      return tx.productImage.create({ data: { storeId, productId, storageKey: blob.pathname, publicUrl: blob.url, altText: altText.trim(), isPrimary } });
+      if (shouldBePrimary) await tx.productImage.updateMany({ where: { storeId, productId }, data: { isPrimary: false } });
+      return tx.productImage.create({ data: { storeId, productId, storageKey: blob.pathname, publicUrl: blob.url, altText: altText.trim() || product.name, isPrimary: shouldBePrimary, sortOrder: imageCount } });
     });
     await this.audit(storeId, actorUserId, 'CREATE_PRODUCT_IMAGE', 'PRODUCT_IMAGE', image.id, undefined, { productId, pathname: blob.pathname });
     return image;
   }
 
+  async listProductImages(storeId: string, productId: string) {
+    await this.getProduct(storeId, productId);
+    return this.prisma.productImage.findMany({ where: { storeId, productId }, orderBy: [{ isPrimary: 'desc' }, { sortOrder: 'asc' }, { id: 'asc' }] });
+  }
+
+  async updateProductImage(storeId: string, productId: string, imageId: string, input: UpdateProductImageDto, actorUserId: string) {
+    await this.getProduct(storeId, productId);
+    const image = await this.prisma.productImage.findFirst({ where: { id: imageId, storeId, productId } });
+    if (!image) throw new NotFoundException('Không tìm thấy hình ảnh');
+    const updated = await this.prisma.$transaction(async (tx) => {
+      if (input.isPrimary === true) await tx.productImage.updateMany({ where: { storeId, productId }, data: { isPrimary: false } });
+      return tx.productImage.update({ where: { id: imageId }, data: { altText: input.altText?.trim() || undefined, sortOrder: input.sortOrder, isPrimary: input.isPrimary === true ? true : undefined } });
+    });
+    await this.audit(storeId, actorUserId, 'UPDATE_PRODUCT_IMAGE', 'PRODUCT_IMAGE', imageId, { altText: image.altText, sortOrder: image.sortOrder, isPrimary: image.isPrimary }, { altText: updated.altText, sortOrder: updated.sortOrder, isPrimary: updated.isPrimary });
+    return updated;
+  }
+
+  async reorderProductImages(storeId: string, productId: string, input: ReorderProductImagesDto, actorUserId: string) {
+    await this.getProduct(storeId, productId);
+    const imageIds = [...new Set(input.imageIds)];
+    const images = await this.prisma.productImage.findMany({ where: { storeId, productId }, select: { id: true } });
+    if (imageIds.length !== images.length || images.some((image) => !imageIds.includes(image.id))) throw new BadRequestException('Danh sách sắp xếp hình ảnh không hợp lệ');
+    await this.prisma.$transaction(imageIds.map((imageId, sortOrder) => this.prisma.productImage.update({ where: { id: imageId }, data: { sortOrder } })));
+    await this.audit(storeId, actorUserId, 'REORDER_PRODUCT_IMAGES', 'PRODUCT', productId);
+    return this.listProductImages(storeId, productId);
+  }
+
   async deleteProductImage(storeId: string, productId: string, imageId: string, actorUserId: string) {
     const image = await this.prisma.productImage.findFirst({ where: { id: imageId, storeId, productId } });
     if (!image) throw new NotFoundException('Không tìm thấy hình ảnh');
-    await this.prisma.productImage.delete({ where: { id: imageId } });
+    if (process.env.BLOB_READ_WRITE_TOKEN) await del(image.storageKey);
+    await this.prisma.$transaction(async (tx) => {
+      await tx.productImage.delete({ where: { id: imageId } });
+      if (image.isPrimary) {
+        const fallback = await tx.productImage.findFirst({ where: { storeId, productId }, orderBy: [{ sortOrder: 'asc' }, { id: 'asc' }] });
+        if (fallback) await tx.productImage.update({ where: { id: fallback.id }, data: { isPrimary: true } });
+      }
+    });
     await this.audit(storeId, actorUserId, 'DELETE_PRODUCT_IMAGE', 'PRODUCT_IMAGE', imageId);
     return { id: imageId };
   }

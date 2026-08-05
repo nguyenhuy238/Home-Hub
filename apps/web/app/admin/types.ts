@@ -2,6 +2,8 @@ export type Category = { id: string; name: string; slug: string; status: string 
 
 export type Brand = { id: string; name: string; slug: string; logoKey: string | null; status: string };
 
+export type ProductImage = { id: string; storageKey: string; publicUrl: string | null; altText: string; sortOrder: number; isPrimary: boolean };
+
 export type AttributeDefinition = { id: string; name: string; code: string; dataType: string; isFilterable: boolean; category: Category | null; optionsJson: { values?: string[] } | null };
 
 export type Product = {
@@ -18,6 +20,7 @@ export type Product = {
   stockStatus: string;
   isFeatured: boolean;
   brand: Brand | null;
+  images: ProductImage[];
   attributeValues?: Array<{ attributeDefinitionId: string; valueText: string | null; valueNumber: string | number | null; valueBoolean: boolean | null; definition: AttributeDefinition }>;
   categories?: Array<{ category: Category }>;
 };

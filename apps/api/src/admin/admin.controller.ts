@@ -11,7 +11,7 @@ import { ContactRequestListQueryDto, UpdateContactRequestStatusDto } from './dto
 import { CreateProductDto, ProductListQueryDto, UpdateProductDto } from './dto/product.dto';
 import { CreateServiceDto, UpdateServiceDto } from './dto/service.dto';
 import { UpdateStoreSettingsDto, UpdateStoreSlugDto } from './dto/store-settings.dto';
-import { UploadProductImageDto } from './dto/media.dto';
+import { ReorderProductImagesDto, UpdateProductImageDto, UploadProductImageDto } from './dto/media.dto';
 
 @Controller('admin')
 @UseGuards(AuthGuard, OwnerGuard)
@@ -83,6 +83,15 @@ export class AdminController {
   @Post('products/:id/images')
   @UseInterceptors(FileInterceptor('file', { limits: { fileSize: 4 * 1024 * 1024 } }))
   async uploadProductImage(@Param('id') id: string, @UploadedFile() file: Express.Multer.File | undefined, @Body() input: UploadProductImageDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.uploadProductImage(request.tenantId!, id, file, input.altText, input.isPrimary === 'true', request.auth!.userId) }; }
+
+  @Get('products/:id/images')
+  async productImages(@Param('id') id: string, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.listProductImages(request.tenantId!, id) }; }
+
+  @Put('products/:id/images/reorder')
+  async reorderProductImages(@Param('id') id: string, @Body() input: ReorderProductImagesDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.reorderProductImages(request.tenantId!, id, input, request.auth!.userId) }; }
+
+  @Patch('products/:id/images/:imageId')
+  async updateProductImage(@Param('id') id: string, @Param('imageId') imageId: string, @Body() input: UpdateProductImageDto, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.updateProductImage(request.tenantId!, id, imageId, input, request.auth!.userId) }; }
 
   @Delete('products/:id/images/:imageId')
   async deleteProductImage(@Param('id') id: string, @Param('imageId') imageId: string, @Req() request: AuthenticatedRequest) { return { data: await this.adminService.deleteProductImage(request.tenantId!, id, imageId, request.auth!.userId) }; }
