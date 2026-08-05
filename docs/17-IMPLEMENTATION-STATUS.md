@@ -6,6 +6,7 @@
 - Prisma schema và migration `apps/api/prisma/migrations/0001_init`.
 - Seed hai cửa hàng demo và tài khoản demo.
 - Authentication cookie access/refresh, OWNER tenant context và platform store setup API.
+- Platform Admin UI tại `/platform/login` và `/platform`: tạo cửa hàng/cấp OWNER, xem danh sách và cập nhật trạng thái storefront.
 - Category, product, product-category, rich-text sanitize, pricing validation và soft delete.
 - Product image upload qua Vercel Blob; file chỉ nhận JPG/PNG/WebP, tối đa 4MB; owner có gallery nhiều ảnh, đổi ảnh đại diện, sửa alt text, sắp xếp và xóa ảnh kèm Blob vật lý.
 - Public storefront: store, category, product, service, contact request, slug alias và suspended notice.
@@ -33,7 +34,8 @@ corepack pnpm --filter @homehub/web dev
 ```
 
 Sau đó mở `http://localhost:3000`, storefront demo ở
-`/cua-hang/noi-that-an-nhien`, admin ở `/admin/login`.
+`/cua-hang/noi-that-an-nhien`, owner admin ở `/admin/login`, platform admin ở
+`/platform/login`.
 
 Seed credentials chỉ dùng cho local demo:
 
@@ -62,6 +64,6 @@ Cron hoặc scheduler tương đương.
 
 ## Phần mở rộng sau MVP
 
-- UI platform admin và chỉnh sửa nâng cao brand/attribute.
+- Chỉnh sửa nâng cao brand/attribute.
 - Rate limiting dùng Redis hoặc provider edge thay cho in-memory best effort.
 - Custom domain mapping, analytics và order/checkout theo các quyết định mới.

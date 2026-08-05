@@ -18,7 +18,8 @@ export default function AdminLoginPage() {
     try {
       const response = await fetch(`${API_BASE_URL}/api/v1/auth/login`, { method: 'POST', credentials: 'include', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ email: form.get('email'), password: form.get('password') }) });
       if (!response.ok) throw new Error('login-failed');
-      window.location.href = '/admin';
+      const body = await response.json() as { data?: { isPlatformAdmin?: boolean } };
+      window.location.href = body.data?.isPlatformAdmin ? '/platform' : '/admin';
     } catch {
       setError('Email hoặc mật khẩu không đúng.');
       setSending(false);

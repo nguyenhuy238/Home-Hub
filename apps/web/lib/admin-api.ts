@@ -11,7 +11,8 @@ export async function adminApi<T>(path: string, options?: RequestInit): Promise<
     },
   });
 
-  if (response.status === 401 || response.status === 403) throw new Error('unauthorized');
+  if (response.status === 401) throw new Error('unauthorized');
+  if (response.status === 403) throw new Error('forbidden');
 
   const body = await response.json().catch(() => null) as { data?: T; message?: string } | null;
   if (!response.ok) throw new Error(body?.message ?? 'request-failed');
