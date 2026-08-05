@@ -60,3 +60,9 @@ Sao chép toàn bộ nội dung của thư mục này vào thư mục gốc repo
 `DESIGN.md` khóa hướng hình ảnh, design tokens, cấu trúc storefront/admin,
 responsive contract và các anti-pattern cần tránh. Tài liệu này được xây dựng
 theo các nguyên tắc trong thư mục `hallmark` và `open-design` đã được cung cấp.
+
+## Trạng thái code
+
+Mã nguồn MVP đang ở `apps/api`, `apps/web` và `packages/contracts`. Xem
+`docs/17-IMPLEMENTATION-STATUS.md` để chạy local, seed demo và biết các phần
+đang để sau MVP.

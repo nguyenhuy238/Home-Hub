@@ -1,0 +1,412 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum UserStatus {
+  ACTIVE
+  LOCKED
+  DISABLED
+}
+
+enum StoreStatus {
+  ACTIVE
+  SUSPENDED
+  ARCHIVED
+}
+
+enum StoreMemberRole {
+  OWNER
+}
+
+enum MembershipStatus {
+  ACTIVE
+  DISABLED
+}
+
+enum CategoryStatus {
+  ACTIVE
+  HIDDEN
+}
+
+enum BrandStatus {
+  ACTIVE
+  HIDDEN
+}
+
+enum PublicationStatus {
+  DRAFT
+  PUBLISHED
+  HIDDEN
+}
+
+enum PriceType {
+  FIXED
+  CONTACT
+  FROM
+  RANGE
+}
+
+enum StockStatus {
+  IN_STOCK
+  OUT_OF_STOCK
+  PREORDER
+  UNKNOWN
+}
+
+enum AttributeDataType {
+  TEXT
+  NUMBER
+  BOOLEAN
+  SELECT
+}
+
+enum ContactRequestStatus {
+  NEW
+  CONTACTED
+  COMPLETED
+  CANCELLED
+}
+
+enum ContactSource {
+  WEBSITE
+  FACEBOOK
+  ZALO
+  OTHER
+}
+
+enum ContactNotificationStatus {
+  PENDING
+  SENT
+  FAILED
+}
+
+model User {
+  id              String     @id @default(cuid())
+  email           String     @unique
+  passwordHash    String     @map("password_hash")
+  displayName     String     @map("display_name")
+  status          UserStatus @default(ACTIVE)
+  isPlatformAdmin Boolean    @default(false) @map("is_platform_admin")
+  createdAt       DateTime   @default(now()) @map("created_at")
+  updatedAt       DateTime   @updatedAt @map("updated_at")
+
+  membership    StoreMember?
+  refreshTokens RefreshToken[]
+  auditLogs     AuditLog[]
+
+  @@map("users")
+}
+
+model Store {
+  id                String      @id @default(cuid())
+  name              String
+  slug              String      @unique
+  status            StoreStatus @default(ACTIVE)
+  suspensionNotice  String?     @map("suspension_notice")
+  ownerContactEmail String?     @map("owner_contact_email")
+  createdAt         DateTime    @default(now()) @map("created_at")
+  updatedAt         DateTime    @updatedAt @map("updated_at")
+  deletedAt         DateTime?   @map("deleted_at")
+
+  membership           StoreMember?
+  categories           Category[]
+  brands               Brand[]
+  products             Product[]
+  services             Service[]
+  productCategories    ProductCategory[]
+  attributeDefinitions ProductAttributeDefinition[]
+  attributeValues      ProductAttributeValue[]
+  contactRequests      ContactRequest[]
+  settings             StoreSettings?
+  auditLogs            AuditLog[]
+  slugAliases          StoreSlugAlias[]
+
+  @@index([status, deletedAt])
+  @@map("stores")
+}
+
+model StoreMember {
+  id        String           @id @default(cuid())
+  storeId   String           @unique @map("store_id")
+  userId    String           @unique @map("user_id")
+  role      StoreMemberRole  @default(OWNER)
+  status    MembershipStatus @default(ACTIVE)
+  createdAt DateTime         @default(now()) @map("created_at")
+  updatedAt DateTime         @updatedAt @map("updated_at")
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  user  User  @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, status])
+  @@index([storeId, role])
+  @@map("store_members")
+}
+
+model Category {
+  id          String         @id @default(cuid())
+  storeId     String         @map("store_id")
+  parentId    String?        @map("parent_id")
+  name        String
+  slug        String
+  description String?        @db.Text
+  imageKey    String?        @map("image_key")
+  sortOrder   Int            @default(0) @map("sort_order")
+  status      CategoryStatus @default(ACTIVE)
+  createdAt   DateTime       @default(now()) @map("created_at")
+  updatedAt   DateTime       @updatedAt @map("updated_at")
+
+  store                Store                        @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  parent               Category?                    @relation("CategoryParent", fields: [parentId], references: [id], onDelete: Restrict)
+  children             Category[]                   @relation("CategoryParent")
+  productCategories    ProductCategory[]
+  attributeDefinitions ProductAttributeDefinition[]
+
+  @@unique([storeId, slug])
+  @@index([storeId, status, sortOrder])
+  @@map("categories")
+}
+
+model Brand {
+  id        String      @id @default(cuid())
+  storeId   String      @map("store_id")
+  name      String
+  slug      String
+  logoKey   String?     @map("logo_key")
+  status    BrandStatus @default(ACTIVE)
+  createdAt DateTime    @default(now()) @map("created_at")
+  updatedAt DateTime    @updatedAt @map("updated_at")
+
+  store    Store     @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  products Product[]
+
+  @@unique([storeId, slug])
+  @@map("brands")
+}
+
+model Product {
+  id                String            @id @default(cuid())
+  storeId           String            @map("store_id")
+  brandId           String?           @map("brand_id")
+  name              String
+  slug              String
+  sku               String?
+  shortDescription  String?           @map("short_description")
+  descriptionHtml   String            @default("") @map("description_html") @db.Text
+  priceType         PriceType         @map("price_type")
+  price             Decimal?          @db.Decimal(18, 2)
+  salePrice         Decimal?          @map("sale_price") @db.Decimal(18, 2)
+  minPrice          Decimal?          @map("min_price") @db.Decimal(18, 2)
+  maxPrice          Decimal?          @map("max_price") @db.Decimal(18, 2)
+  stockStatus       StockStatus       @default(UNKNOWN) @map("stock_status")
+  publicationStatus PublicationStatus @default(DRAFT) @map("publication_status")
+  isFeatured        Boolean           @default(false) @map("is_featured")
+  publishedAt       DateTime?         @map("published_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  deletedAt         DateTime?         @map("deleted_at")
+
+  store           Store                   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  brand           Brand?                  @relation(fields: [brandId], references: [id], onDelete: SetNull)
+  categories      ProductCategory[]
+  images          ProductImage[]
+  attributeValues ProductAttributeValue[]
+  contactRequests ContactRequest[]
+
+  @@unique([storeId, slug])
+  @@unique([storeId, sku])
+  @@index([storeId, publicationStatus, deletedAt])
+  @@index([storeId, isFeatured, publicationStatus])
+  @@map("products")
+}
+
+model ProductCategory {
+  id         String @id @default(cuid())
+  storeId    String @map("store_id")
+  productId  String @map("product_id")
+  categoryId String @map("category_id")
+
+  store    Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product  Product  @relation(fields: [productId], references: [id], onDelete: Cascade)
+  category Category @relation(fields: [categoryId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, categoryId])
+  @@index([storeId, categoryId, productId])
+  @@map("product_categories")
+}
+
+model Service {
+  id                String            @id @default(cuid())
+  storeId           String            @map("store_id")
+  name              String
+  slug              String
+  shortDescription  String?           @map("short_description")
+  descriptionHtml   String            @default("") @map("description_html") @db.Text
+  priceType         PriceType         @map("price_type")
+  price             Decimal?          @db.Decimal(18, 2)
+  minPrice          Decimal?          @map("min_price") @db.Decimal(18, 2)
+  maxPrice          Decimal?          @map("max_price") @db.Decimal(18, 2)
+  coverImageKey     String?           @map("cover_image_key")
+  publicationStatus PublicationStatus @default(DRAFT) @map("publication_status")
+  isFeatured        Boolean           @default(false) @map("is_featured")
+  publishedAt       DateTime?         @map("published_at")
+  createdAt         DateTime          @default(now()) @map("created_at")
+  updatedAt         DateTime          @updatedAt @map("updated_at")
+  deletedAt         DateTime?         @map("deleted_at")
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@unique([storeId, slug])
+  @@index([storeId, publicationStatus, deletedAt])
+  @@map("services")
+}
+
+model ProductImage {
+  id         String  @id @default(cuid())
+  storeId    String  @map("store_id")
+  productId  String  @map("product_id")
+  storageKey String  @map("storage_key")
+  publicUrl  String? @map("public_url")
+  altText    String  @map("alt_text")
+  sortOrder  Int     @default(0) @map("sort_order")
+  isPrimary  Boolean @default(false) @map("is_primary")
+  width      Int?
+  height     Int?
+  mimeType   String? @map("mime_type")
+
+  product Product @relation(fields: [productId], references: [id], onDelete: Cascade)
+
+  @@index([storeId, productId, sortOrder])
+  @@map("product_images")
+}
+
+model ProductAttributeDefinition {
+  id           String            @id @default(cuid())
+  storeId      String            @map("store_id")
+  categoryId   String?           @map("category_id")
+  name         String
+  code         String
+  dataType     AttributeDataType @map("data_type")
+  isFilterable Boolean           @default(false) @map("is_filterable")
+  sortOrder    Int               @default(0) @map("sort_order")
+  optionsJson  Json?             @map("options_json")
+
+  store    Store                   @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  category Category?               @relation(fields: [categoryId], references: [id], onDelete: SetNull)
+  values   ProductAttributeValue[]
+
+  @@unique([storeId, code])
+  @@map("product_attribute_definitions")
+}
+
+model ProductAttributeValue {
+  id                    String   @id @default(cuid())
+  storeId               String   @map("store_id")
+  productId             String   @map("product_id")
+  attributeDefinitionId String   @map("attribute_definition_id")
+  valueText             String?  @map("value_text")
+  valueNumber           Decimal? @map("value_number") @db.Decimal(18, 4)
+  valueBoolean          Boolean? @map("value_boolean")
+  valueJson             Json?    @map("value_json")
+
+  store      Store                      @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product    Product                    @relation(fields: [productId], references: [id], onDelete: Cascade)
+  definition ProductAttributeDefinition @relation(fields: [attributeDefinitionId], references: [id], onDelete: Cascade)
+
+  @@unique([productId, attributeDefinitionId])
+  @@map("product_attribute_values")
+}
+
+model ContactRequest {
+  id                   String                    @id @default(cuid())
+  storeId              String                    @map("store_id")
+  productId            String?                   @map("product_id")
+  customerName         String                    @map("customer_name")
+  customerPhone        String                    @map("customer_phone")
+  customerEmail        String?                   @map("customer_email")
+  message              String                    @db.Text
+  status               ContactRequestStatus      @default(NEW)
+  source               ContactSource             @default(WEBSITE)
+  notificationStatus   ContactNotificationStatus @default(PENDING) @map("notification_status")
+  notificationSentAt   DateTime?                 @map("notification_sent_at")
+  notificationAttempts Int                       @default(0) @map("notification_attempts")
+  anonymizedAt         DateTime?                 @map("anonymized_at")
+  createdAt            DateTime                  @default(now()) @map("created_at")
+  updatedAt            DateTime                  @updatedAt @map("updated_at")
+
+  store   Store    @relation(fields: [storeId], references: [id], onDelete: Cascade)
+  product Product? @relation(fields: [productId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, status, createdAt(sort: Desc)])
+  @@index([anonymizedAt])
+  @@map("contact_requests")
+}
+
+model StoreSlugAlias {
+  id        String   @id @default(cuid())
+  storeId   String   @map("store_id")
+  slug      String   @unique
+  createdAt DateTime @default(now()) @map("created_at")
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@index([storeId])
+  @@map("store_slug_aliases")
+}
+
+model StoreSettings {
+  storeId       String   @id @map("store_id")
+  logoKey       String?  @map("logo_key")
+  bannerKey     String?  @map("banner_key")
+  description   String?  @db.Text
+  address       String?
+  phone         String?
+  email         String?
+  zaloUrl       String?  @map("zalo_url")
+  facebookUrl   String?  @map("facebook_url")
+  mapUrl        String?  @map("map_url")
+  openingHours  Json?    @map("opening_hours")
+  themeSettings Json?    @map("theme_settings")
+  seoDefaults   Json?    @map("seo_defaults")
+  createdAt     DateTime @default(now()) @map("created_at")
+  updatedAt     DateTime @updatedAt @map("updated_at")
+
+  store Store @relation(fields: [storeId], references: [id], onDelete: Cascade)
+
+  @@map("store_settings")
+}
+
+model RefreshToken {
+  id        String    @id @default(cuid())
+  userId    String    @map("user_id")
+  tokenHash String    @unique @map("token_hash")
+  expiresAt DateTime  @map("expires_at")
+  revokedAt DateTime? @map("revoked_at")
+  createdAt DateTime  @default(now()) @map("created_at")
+  user      User      @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId, expiresAt])
+  @@map("refresh_tokens")
+}
+
+model AuditLog {
+  id          String   @id @default(cuid())
+  storeId     String?  @map("store_id")
+  actorUserId String?  @map("actor_user_id")
+  action      String
+  entityType  String   @map("entity_type")
+  entityId    String   @map("entity_id")
+  beforeJson  Json?    @map("before_json")
+  afterJson   Json?    @map("after_json")
+  createdAt   DateTime @default(now()) @map("created_at")
+
+  store Store? @relation(fields: [storeId], references: [id], onDelete: SetNull)
+  actor User?  @relation(fields: [actorUserId], references: [id], onDelete: SetNull)
+
+  @@index([storeId, createdAt(sort: Desc)])
+  @@map("audit_logs")
+}

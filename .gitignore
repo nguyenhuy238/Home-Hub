@@ -1,6 +1,7 @@
 # Dependencies and package-manager state
 node_modules/
 .pnpm-store/
+.corepack-cache/
 .turbo/
 
 # Builds and test output
@@ -37,6 +38,7 @@ uploads/
 storage/
 *.dump
 *.sql.gz
+*.tsbuildinfo
 
 # Local reference/tooling bundles used to prepare the project docs
 hallmark/

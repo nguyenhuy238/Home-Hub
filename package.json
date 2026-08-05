@@ -1,0 +1,18 @@
+{
+  "name": "homehub",
+  "private": true,
+  "packageManager": "pnpm@10.33.2",
+  "engines": {
+    "node": ">=22.0.0"
+  },
+  "scripts": {
+    "typecheck": "corepack pnpm --filter @homehub/contracts typecheck && corepack pnpm --filter @homehub/api typecheck && corepack pnpm --filter @homehub/web typecheck",
+    "lint": "corepack pnpm --filter @homehub/contracts lint && corepack pnpm --filter @homehub/api lint && corepack pnpm --filter @homehub/web lint",
+    "test": "corepack pnpm --filter @homehub/contracts test && corepack pnpm --filter @homehub/api test && corepack pnpm --filter @homehub/web test",
+    "build": "corepack pnpm --filter @homehub/api build && corepack pnpm --filter @homehub/web build"
+  },
+  "devDependencies": {
+    "turbo": "^2.5.5",
+    "typescript": "^5.8.3"
+  }
+}
